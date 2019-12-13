@@ -40,24 +40,31 @@ type Transaction struct {
 	Date     acDate    `xml:"date"`
 	Transfer *Transfer `xml:"transfer"`
 	Income   *Income   `xml:"income"`
+	Expense  *Expense  `xml:"expense"`
+	Balance  *Balance  `xml:"balance"`
 }
 
 type Transfer struct {
 	txItem
 	txIncome
-	ExpenseAccount txAccount `xml:"expense-account"`
-	ExpenseAmount  float64   `xml:"expense-amount"`
-	ExpenseBalance float64   `xml:"expense-balance"`
+	txExpense
 }
 
 type Income struct {
 	txItem
 	txIncome
-	Category txCategory `xml:"category"`
+	Categories []txCategory `xml:"category"`
 }
 
-type Outcome struct {
+type Expense struct {
 	txItem
+	txExpense
+	Categories []txCategory `xml:"category"`
+}
+
+type Balance struct {
+	txItem
+	txIncome
 }
 
 type item struct {
@@ -66,6 +73,7 @@ type item struct {
 }
 
 type txItem struct {
+	item
 	Executed bool `xml:"executed"`
 	Locked   bool `xml:"locked"`
 }
@@ -76,13 +84,19 @@ type txAccount struct {
 }
 
 type txIncome struct {
-	IncomeAccount  txAccount `xml:"income-account"`
-	IncomeAmount   float64   `xml:"income-amount"`
-	IncomeBalance  float64   `xml:"income-balance"`
+	IncomeAccount txAccount `xml:"income-account"`
+	IncomeAmount  float64   `xml:"income-amount"`
+	IncomeBalance float64   `xml:"income-balance"`
+}
+
+type txExpense struct {
+	ExpenseAccount txAccount `xml:"expense-account"`
+	ExpenseAmount  float64   `xml:"expense-amount"`
+	ExpenseBalance float64   `xml:"expense-balance"`
 }
 
 type txCategory struct {
-	Classifier string `xml:"classifier,attr"`
-	Name string `xml:"name"`
-	Category *txCategory `xml:"category"`
+	Classifier string      `xml:"classifier,attr"`
+	Name       string      `xml:"name"`
+	Category   *txCategory `xml:"category"`
 }
