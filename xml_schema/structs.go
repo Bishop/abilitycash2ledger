@@ -1,4 +1,4 @@
-package abilitycash
+package xml_schema
 
 import (
 	"encoding/xml"
