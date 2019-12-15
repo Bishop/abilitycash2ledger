@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -20,7 +21,8 @@ func main() {
 	readScope()
 
 	app := cli.App{
-		Name:    "abilitycash db to ledger converter",
+		Name:    "abilitycash2ledger",
+		Usage:   "abilitycash db to ledger converter",
 		Version: "0.0.1",
 		Commands: []*cli.Command{
 			{
@@ -29,8 +31,13 @@ func main() {
 				Usage:   "Add datafile to scope",
 				Action:  add,
 			},
+			{
+				Name:    "prepare",
+				Aliases: []string{"p"},
+				Usage:   "Analyze datafiles and fill config file",
+				Action:  prepare,
+			},
 		},
-		Action: process,
 	}
 
 	err := app.Run(os.Args)
@@ -64,35 +71,40 @@ func add(c *cli.Context) error {
 }
 
 func prepare(c *cli.Context) error {
-	return nil
-}
+	for _, datafile := range scope.Datafiles {
+		path := datafile.Path
 
-func process(c *cli.Context) error {
-	path := c.String("datafile")
+		ensureFileExist(path)
 
-	ensureFileExist(path)
+		data, err := ioutil.ReadFile(path)
 
-	data, err := ioutil.ReadFile(path)
-
-	if err != nil {
-		return err
-	}
-
-	db := xml_schema.Database{}
-
-	if err = xml.Unmarshal(data, &db); err != nil {
-		return err
-	}
-
-	log.Printf("%+v", db.Accounts)
-
-	for _, tx := range db.Transactions {
-		if tx.Income == nil && tx.Expense == nil && tx.Transfer == nil {
-			dump, _ := json.MarshalIndent(tx, "", "  ")
-
-			log.Println(string(dump))
+		if err != nil {
+			return err
 		}
+
+		db := xml_schema.Database{}
+
+		if err = xml.Unmarshal(data, &db); err != nil {
+			return err
+		}
+
+		datafile.Accounts = make([]string, len(db.Accounts))
+		for i, account := range db.Accounts {
+			datafile.Accounts[i] = fmt.Sprintf("%s - %s", account.Name, account.Currency)
+		}
+
+		for _, tx := range db.Transactions {
+			if tx.Income == nil && tx.Expense == nil && tx.Transfer == nil && tx.Balance == nil {
+				dump, _ := json.MarshalIndent(tx, "", "  ")
+
+				log.Println(string(dump))
+			}
+		}
+
+		fmt.Printf("file: %s\n%d transactions\n", path, len(db.Transactions))
 	}
+
+	saveScope()
 
 	return nil
 }
