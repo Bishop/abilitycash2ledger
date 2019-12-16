@@ -85,18 +85,13 @@ func prepare(c *cli.Context) error {
 
 		db := readXmlDatabase(dataFile)
 
-		datafile.Accounts = make([]string, len(db.Accounts))
-		for i, account := range db.Accounts {
-			datafile.Accounts[i] = fmt.Sprintf("%s - %s", account.Name, account.Currency)
+		if len(db.AccountPlans) != 1 {
+			log.Fatal("something wrong with accounts plans")
 		}
 
-		for _, tx := range db.Transactions {
-			if tx.Income == nil && tx.Expense == nil && tx.Transfer == nil && tx.Balance == nil {
-				dump, _ := json.MarshalIndent(tx, "", "  ")
-
-				log.Println(string(dump))
-			}
-		}
+		datafile.Accounts = db.AccountPlans[0].Mappings(func(duplicate string) {
+			log.Printf("duplicate account name: %s", duplicate)
+		})
 
 		fmt.Printf("file: %s\n%d transactions\n", dataFile, len(db.Transactions))
 	}
@@ -205,4 +200,10 @@ func readXmlDatabase(path string) *xml_schema.Database {
 	}
 
 	return &db
+}
+
+func logEntity(e interface{}) {
+	dump, _ := json.MarshalIndent(e, "", "  ")
+
+	log.Println(string(dump))
 }

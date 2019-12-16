@@ -9,6 +9,7 @@ type Database struct {
 	Currencies   []Currency    `xml:"currencies>currency"`
 	Rates        []Rate        `xml:"rates>rate"`
 	Accounts     []Account     `xml:"accounts>account"`
+	AccountPlans []AccountPlan `xml:"account-plans>account-plan"`
 	Transactions []Transaction `xml:"transactions>transaction"`
 }
 
@@ -33,6 +34,15 @@ type Account struct {
 	Name        string  `xml:"name"`
 	Currency    string  `xml:"currency"`
 	InitBalance float64 `xml:"init-balance"`
+}
+
+type AccountPlan struct {
+	item
+	Name     string        `xml:"name"`
+	Comment  string        `xml:"comment"`
+	Accounts []Account     `xml:"account"`
+	Folders  []AccountPlan `xml:"folder"`
+	mapping  map[string]string
 }
 
 type Transaction struct {
@@ -99,4 +109,9 @@ type txCategory struct {
 	Classifier string      `xml:"classifier,attr"`
 	Name       string      `xml:"name"`
 	Category   *txCategory `xml:"category"`
+}
+
+type Category struct {
+	item
+	Categories *[]Category `xml:"category"`
 }
