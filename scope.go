@@ -5,7 +5,7 @@ type Scope struct {
 }
 
 type Datafile struct {
-	Path               string   `json:"path"`
-	ConsiderLockedFlag bool     `json:"consider_locked_flag"`
-	Accounts           []string `json:"accounts"`
+	Path     string   `json:"path"`
+	Target   string   `json:"target"`
+	Accounts []string `json:"accounts"`
 }

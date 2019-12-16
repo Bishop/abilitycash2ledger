@@ -8,6 +8,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
+	"strings"
+	"text/template"
 
 	"github.com/Bishop/abilitycash2ledger/xml_schema"
 	"github.com/urfave/cli/v2"
@@ -23,7 +26,7 @@ func main() {
 	app := cli.App{
 		Name:    "abilitycash2ledger",
 		Usage:   "abilitycash db to ledger converter",
-		Version: "0.0.1",
+		Version: "0.0.2",
 		Commands: []*cli.Command{
 			{
 				Name:    "add",
@@ -36,6 +39,12 @@ func main() {
 				Aliases: []string{"p"},
 				Usage:   "Analyze datafiles and fill config file",
 				Action:  prepare,
+			},
+			{
+				Name:    "convert",
+				Aliases: []string{"c"},
+				Usage:   "Convert added datafiles to ledger format",
+				Action:  convert,
 			},
 		},
 	}
@@ -72,21 +81,9 @@ func add(c *cli.Context) error {
 
 func prepare(c *cli.Context) error {
 	for _, datafile := range scope.Datafiles {
-		path := datafile.Path
+		dataFile := datafile.Path
 
-		ensureFileExist(path)
-
-		data, err := ioutil.ReadFile(path)
-
-		if err != nil {
-			return err
-		}
-
-		db := xml_schema.Database{}
-
-		if err = xml.Unmarshal(data, &db); err != nil {
-			return err
-		}
+		db := readXmlDatabase(dataFile)
 
 		datafile.Accounts = make([]string, len(db.Accounts))
 		for i, account := range db.Accounts {
@@ -101,10 +98,46 @@ func prepare(c *cli.Context) error {
 			}
 		}
 
-		fmt.Printf("file: %s\n%d transactions\n", path, len(db.Transactions))
+		fmt.Printf("file: %s\n%d transactions\n", dataFile, len(db.Transactions))
 	}
 
 	saveScope()
+
+	return nil
+}
+
+func convert(c *cli.Context) error {
+	for _, datafile := range scope.Datafiles {
+		dataFile := datafile.Path
+
+		db := readXmlDatabase(dataFile)
+
+		outFile := strings.Replace(path.Base(dataFile), path.Ext(dataFile), "", 1)
+
+		t, err := template.New("rates.go.tmpl").ParseFiles("templates/rates.go.tmpl")
+
+		if err != nil {
+			return err
+		}
+
+		file, err := os.Create(fmt.Sprintf("%s-rates.dat", outFile))
+
+		if err != nil {
+			return err
+		}
+
+		err = t.Execute(file, db)
+
+		if err != nil {
+			return err
+		}
+
+		err = file.Close()
+
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -154,4 +187,22 @@ func saveConfig(filename string, config interface{}) error {
 	}
 
 	return ioutil.WriteFile(filename, data, 0600)
+}
+
+func readXmlDatabase(path string) *xml_schema.Database {
+	ensureFileExist(path)
+
+	data, err := ioutil.ReadFile(path)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	db := xml_schema.Database{}
+
+	if err = xml.Unmarshal(data, &db); err != nil {
+		log.Fatal(err)
+	}
+
+	return &db
 }

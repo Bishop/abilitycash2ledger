@@ -51,3 +51,7 @@ func (a *acDate) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 func (a acDate) MarshalJSON() ([]byte, error) {
 	return json.Marshal(a.d)
 }
+
+func (a *acDate) Format(layout string) string {
+	return a.d.Format(layout)
+}
