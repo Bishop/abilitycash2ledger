@@ -55,3 +55,11 @@ func (a acDate) MarshalJSON() ([]byte, error) {
 func (a *acDate) Format(layout string) string {
 	return a.d.Format(layout)
 }
+
+func (tx *txItem) IsExecuted() bool {
+	return tx.Executed != nil
+}
+
+func (tx *txItem) IsLocked() bool {
+	return tx.Locked != nil
+}

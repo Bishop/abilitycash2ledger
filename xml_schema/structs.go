@@ -74,8 +74,8 @@ type item struct {
 
 type txItem struct {
 	item
-	Executed bool `xml:"executed"`
-	Locked   bool `xml:"locked"`
+	Executed *struct{} `xml:"executed"`
+	Locked   *struct{} `xml:"locked"`
 }
 
 type txAccount struct {
