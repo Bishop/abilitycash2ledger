@@ -10,7 +10,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"text/template"
 
 	"github.com/Bishop/abilitycash2ledger/xml_schema"
 	"github.com/urfave/cli/v2"
@@ -107,30 +106,12 @@ func convert(c *cli.Context) error {
 
 		db := readXmlDatabase(dataFile)
 
-		outFile := strings.Replace(path.Base(dataFile), path.Ext(dataFile), "", 1)
+		outFilePrefix := strings.Replace(path.Base(dataFile), path.Ext(dataFile), "", 1)
 
-		t, err := template.New("rates.go.tmpl").ParseFiles("templates/rates.go.tmpl")
-
-		if err != nil {
-			return err
-		}
-
-		file, err := os.Create(fmt.Sprintf("%s-rates.dat", outFile))
+		err := export(db, outFilePrefix)
 
 		if err != nil {
-			return err
-		}
-
-		err = t.Execute(file, db)
-
-		if err != nil {
-			return err
-		}
-
-		err = file.Close()
-
-		if err != nil {
-			return err
+			log.Fatal(err)
 		}
 	}
 
