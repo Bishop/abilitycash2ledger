@@ -8,11 +8,11 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path"
-	"strings"
+	"text/template"
+
+	"github.com/urfave/cli/v2"
 
 	"github.com/Bishop/abilitycash2ledger/xml_schema"
-	"github.com/urfave/cli/v2"
 )
 
 const scopeFile = "./scope.json"
@@ -102,17 +102,7 @@ func prepare(c *cli.Context) error {
 
 func convert(c *cli.Context) error {
 	for _, datafile := range scope.Datafiles {
-		dataFile := datafile.Path
-
-		db := readXmlDatabase(dataFile)
-
-		outFilePrefix := strings.Replace(path.Base(dataFile), path.Ext(dataFile), "", 1)
-
-		err := export(db, outFilePrefix)
-
-		if err != nil {
-			log.Fatal(err)
-		}
+		datafile.Export(readXmlDatabase)
 	}
 
 	return nil
@@ -187,4 +177,9 @@ func logEntity(e interface{}) {
 	dump, _ := json.MarshalIndent(e, "", "  ")
 
 	log.Println(string(dump))
+}
+
+func getTemplate(name string) (*template.Template, error) {
+	return template.New(fmt.Sprintf("%s.go.tmpl", name)).
+		ParseFiles(fmt.Sprintf("templates/%s.go.tmpl", name))
 }

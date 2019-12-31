@@ -48,6 +48,7 @@ type AccountPlan struct {
 type Transaction struct {
 	item
 	Date     acDate    `xml:"date"`
+	Comment  string    `xml:"comment"`
 	Transfer *Transfer `xml:"transfer"`
 	Income   *Income   `xml:"income"`
 	Expense  *Expense  `xml:"expense"`

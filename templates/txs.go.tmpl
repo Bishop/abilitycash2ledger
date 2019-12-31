@@ -1,4 +1,6 @@
-{{range .Transactions}}
-{{.Date.Format "2006/01/02"}}
-
+{{range .Database.Transactions}}
+{{.Date.Format "2006/01/02"}} {{.Comment}}
+{{if .Transfer}}
+    {{.Transfer}}
+{{end}}
 {{end}}
