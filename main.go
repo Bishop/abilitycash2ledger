@@ -2,17 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
-	"text/template"
 
 	"github.com/urfave/cli/v2"
-
-	"github.com/Bishop/abilitycash2ledger/xml_schema"
 )
 
 const scopeFile = "./scope.json"
@@ -155,32 +151,8 @@ func saveConfig(filename string, config interface{}) error {
 	return ioutil.WriteFile(filename, data, 0600)
 }
 
-func readXmlDatabase(path string) *xml_schema.Database {
-	ensureFileExist(path)
-
-	data, err := ioutil.ReadFile(path)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	db := xml_schema.Database{}
-
-	if err = xml.Unmarshal(data, &db); err != nil {
-		log.Fatal(err)
-	}
-
-	return &db
-}
-
 func logEntity(e interface{}) {
 	dump, _ := json.MarshalIndent(e, "", "  ")
 
 	log.Println(string(dump))
-}
-
-func getTemplate(name string, funcs template.FuncMap) (*template.Template, error) {
-	return template.New(fmt.Sprintf("%s.go.tmpl", name)).
-		Funcs(funcs).
-		ParseFiles(fmt.Sprintf("templates/%s.go.tmpl", name))
 }

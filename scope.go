@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/xml"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -24,11 +26,6 @@ type Datafile struct {
 	db                *xml_schema.Database
 }
 
-type view struct {
-	Database *xml_schema.Database
-	Accounts map[string]string
-}
-
 func (d *Datafile) Export(reader func(path string) *xml_schema.Database) {
 	d.db = reader(d.Path)
 
@@ -41,17 +38,19 @@ func (d *Datafile) Export(reader func(path string) *xml_schema.Database) {
 
 	outFilePrefix := strings.Replace(path.Base(d.Path), path.Ext(d.Path), "", 1)
 
-	for _, entity := range []string{"rates", "txs"} {
-		err := d.exportEntity(outFilePrefix, entity)
+	err := d.exportEntity(outFilePrefix, "rates", d.db)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		if err != nil {
-			log.Fatal(err)
-		}
+	err = d.exportEntity(outFilePrefix, "txs", d.db.LedgerTransactions())
+	if err != nil {
+		log.Fatal(err)
 	}
 }
 
-func (d *Datafile) exportEntity(outFilePrefix string, entity string) error {
-	t, err := getTemplate(entity, template.FuncMap{
+func (d *Datafile) exportEntity(outFilePrefix string, entityName string, data interface{}) error {
+	t, err := getTemplate(entityName, template.FuncMap{
 		"acc": d.account,
 	})
 
@@ -59,16 +58,13 @@ func (d *Datafile) exportEntity(outFilePrefix string, entity string) error {
 		return err
 	}
 
-	file, err := os.Create(fmt.Sprintf("%s-%s.dat", outFilePrefix, entity))
+	file, err := os.Create(fmt.Sprintf("%s-%s.dat", outFilePrefix, entityName))
 
 	if err != nil {
 		return err
 	}
 
-	err = t.Execute(file, view{
-		Database: d.db,
-		Accounts: d.Accounts,
-	})
+	err = t.Execute(file, data)
 
 	if err != nil {
 		return err
@@ -83,7 +79,38 @@ func (d *Datafile) exportEntity(outFilePrefix string, entity string) error {
 	return nil
 }
 
+func readXmlDatabase(path string) *xml_schema.Database {
+	ensureFileExist(path)
+
+	data, err := ioutil.ReadFile(path)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	db := xml_schema.Database{}
+
+	if err = xml.Unmarshal(data, &db); err != nil {
+		log.Fatal(err)
+	}
+
+	return &db
+}
+
+func getTemplate(name string, funcs template.FuncMap) (*template.Template, error) {
+	return template.New(fmt.Sprintf("%s.go.tmpl", name)).
+		Funcs(funcs).
+		Funcs(template.FuncMap{
+			"signed": signed,
+		}).
+		ParseFiles(fmt.Sprintf("templates/%s.go.tmpl", name))
+}
+
 func (d *Datafile) account(name string) string {
 	format := fmt.Sprintf("%%-%ds", d.accountNameLength)
 	return fmt.Sprintf(format, d.Accounts[name])
+}
+
+func signed(amount float64) string {
+	return fmt.Sprintf("% g", amount)
 }

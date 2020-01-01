@@ -1,10 +1,8 @@
-{{range .Database.Transactions -}}
-{{.Date.Format "2006/01/02"}} {{.Comment}}
-{{- if .Transfer}}
-    {{- if .Transfer.Executed}}
-    {{acc .Transfer.ExpenseAccount.Name}}  {{.Transfer.ExpenseAmount}} {{.Transfer.ExpenseAccount.Currency}}
-    {{acc .Transfer.IncomeAccount.Name}}   {{.Transfer.IncomeAmount}} {{.Transfer.IncomeAccount.Currency}}
-    {{- end}}
+{{range .}}
+{{- if .Executed -}}
+{{.Date.Format "2006/01/02"}} {{.Description}}
+{{- range .Items}}
+    {{acc .Account}}  {{signed .Amount}} {{.Currency}}
 {{- end}}
-
+{{end}}
 {{end}}

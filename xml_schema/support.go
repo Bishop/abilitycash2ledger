@@ -56,6 +56,10 @@ func (a *acDate) Format(layout string) string {
 	return a.d.Format(layout)
 }
 
+func (a *acDate) Source() time.Time {
+	return a.d
+}
+
 func (tx *txItem) IsExecuted() bool {
 	return tx.Executed != nil
 }
