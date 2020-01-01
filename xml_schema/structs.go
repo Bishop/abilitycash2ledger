@@ -11,6 +11,7 @@ type Database struct {
 	Accounts     []Account     `xml:"accounts>account"`
 	AccountPlans []AccountPlan `xml:"account-plans>account-plan"`
 	Transactions []Transaction `xml:"transactions>transaction"`
+	Classifiers  []Classifier  `xml:"classifiers>classifier"`
 }
 
 type Currency struct {
@@ -43,6 +44,11 @@ type AccountPlan struct {
 	Accounts []Account     `xml:"account"`
 	Folders  []AccountPlan `xml:"folder"`
 	mapping  map[string]string
+}
+
+type Classifier struct {
+	item
+	Name string `xml:"singular-name"`
 }
 
 type Transaction struct {

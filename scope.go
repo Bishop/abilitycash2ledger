@@ -2,12 +2,11 @@ package main
 
 import (
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
-	"path"
-	"strings"
 	"text/template"
 	"unicode/utf8"
 
@@ -22,12 +21,14 @@ type Datafile struct {
 	Path              string            `json:"path"`
 	Target            string            `json:"target"`
 	Accounts          map[string]string `json:"accounts"`
+	Classifiers       []string          `json:"classifiers"`
+	PrimaryClassifier string            `json:"primary_classifier"`
 	accountNameLength int
-	db                *xml_schema.Database
+	db                xml_schema.Database
 }
 
-func (d *Datafile) Export(reader func(path string) *xml_schema.Database) {
-	d.db = reader(d.Path)
+func (d *Datafile) Export() (err error) {
+	d.readXmlDatabase()
 
 	for _, accountName := range d.Accounts {
 		l := utf8.RuneCountInString(accountName)
@@ -36,20 +37,17 @@ func (d *Datafile) Export(reader func(path string) *xml_schema.Database) {
 		}
 	}
 
-	outFilePrefix := strings.Replace(path.Base(d.Path), path.Ext(d.Path), "", 1)
-
-	err := d.exportEntity(outFilePrefix, "rates", d.db)
-	if err != nil {
-		log.Fatal(err)
+	if err = d.exportEntity("rates", d.db); err != nil {
+		return
+	}
+	if err = d.exportEntity("txs", d.db.LedgerTransactions()); err != nil {
+		return
 	}
 
-	err = d.exportEntity(outFilePrefix, "txs", d.db.LedgerTransactions())
-	if err != nil {
-		log.Fatal(err)
-	}
+	return
 }
 
-func (d *Datafile) exportEntity(outFilePrefix string, entityName string, data interface{}) error {
+func (d *Datafile) exportEntity(entityName string, data interface{}) error {
 	t, err := getTemplate(entityName, template.FuncMap{
 		"acc": d.account,
 	})
@@ -58,7 +56,7 @@ func (d *Datafile) exportEntity(outFilePrefix string, entityName string, data in
 		return err
 	}
 
-	file, err := os.Create(fmt.Sprintf("%s-%s.dat", outFilePrefix, entityName))
+	file, err := os.Create(fmt.Sprintf("%s-%s.dat", d.Target, entityName))
 
 	if err != nil {
 		return err
@@ -79,22 +77,39 @@ func (d *Datafile) exportEntity(outFilePrefix string, entityName string, data in
 	return nil
 }
 
-func readXmlDatabase(path string) *xml_schema.Database {
-	ensureFileExist(path)
+func (d *Datafile) Validate() ([]string, error) {
+	messages := make([]string, 0)
 
-	data, err := ioutil.ReadFile(path)
+	d.readXmlDatabase()
+
+	if len(d.db.AccountPlans) != 1 {
+		return nil, errors.New("something wrong with accounts plans")
+	}
+
+	d.Accounts = d.db.AccountPlans[0].Mappings(func(duplicate string) {
+		messages = append(messages, fmt.Sprintf("duplicate account name: %s", duplicate))
+	})
+
+	d.Classifiers = make([]string, 0)
+	for _, c := range d.db.Classifiers {
+		d.Classifiers = append(d.Classifiers, c.Name)
+	}
+
+	messages = append(messages, fmt.Sprintf("file %s is ok; found %d transactions\n", d.Path, len(d.db.Transactions)))
+
+	return messages, nil
+}
+
+func (d *Datafile) readXmlDatabase() {
+	data, err := ioutil.ReadFile(d.Path)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	db := xml_schema.Database{}
-
-	if err = xml.Unmarshal(data, &db); err != nil {
+	if err = xml.Unmarshal(data, &d.db); err != nil {
 		log.Fatal(err)
 	}
-
-	return &db
 }
 
 func getTemplate(name string, funcs template.FuncMap) (*template.Template, error) {

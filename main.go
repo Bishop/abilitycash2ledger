@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
+	"strings"
 
 	"github.com/urfave/cli/v2"
 )
@@ -53,21 +54,22 @@ func main() {
 
 func add(c *cli.Context) error {
 	if c.NArg() != 1 {
-		return errors.New("path to datafile is needed for add command")
+		return errors.New("newPath to datafile is needed for add command")
 	}
 
-	path := c.Args().First()
+	newPath := c.Args().First()
 
-	ensureFileExist(path)
+	ensureFileExist(newPath)
 
 	for _, df := range scope.Datafiles {
-		if df.Path == path {
-			log.Printf("path %s already in the list", path)
+		if df.Path == newPath {
+			log.Printf("newPath %s already in the list", newPath)
 			return nil
 		}
 	}
 
-	scope.Datafiles = append(scope.Datafiles, &Datafile{Path: path})
+	scope.Datafiles = append(scope.Datafiles, &Datafile{Path: newPath,
+		Target: strings.Replace(newPath, path.Ext(newPath), "", 1)})
 
 	saveScope()
 
@@ -76,19 +78,15 @@ func add(c *cli.Context) error {
 
 func prepare(c *cli.Context) error {
 	for _, datafile := range scope.Datafiles {
-		dataFile := datafile.Path
+		messages, err := datafile.Validate()
 
-		db := readXmlDatabase(dataFile)
-
-		if len(db.AccountPlans) != 1 {
-			log.Fatal("something wrong with accounts plans")
+		if err != nil {
+			log.Fatal(err)
 		}
 
-		datafile.Accounts = db.AccountPlans[0].Mappings(func(duplicate string) {
-			log.Printf("duplicate account name: %s", duplicate)
-		})
-
-		fmt.Printf("file: %s\n%d transactions\n", dataFile, len(db.Transactions))
+		for _, m := range messages {
+			log.Println(m)
+		}
 	}
 
 	saveScope()
@@ -98,7 +96,9 @@ func prepare(c *cli.Context) error {
 
 func convert(c *cli.Context) error {
 	for _, datafile := range scope.Datafiles {
-		datafile.Export(readXmlDatabase)
+		if err := datafile.Export(); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	return nil
