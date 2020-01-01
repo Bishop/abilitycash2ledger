@@ -4,7 +4,7 @@ import (
 	"github.com/Bishop/abilitycash2ledger/ledger"
 )
 
-func (d *Database) LedgerTransactions() []ledger.Transaction {
+func (d *Database) LedgerTransactions(categoryClassifier string) []ledger.Transaction {
 	txs := make([]ledger.Transaction, len(d.Transactions))
 
 	for i, source := range d.Transactions {
@@ -35,21 +35,35 @@ func (d *Database) LedgerTransactions() []ledger.Transaction {
 		case source.Expense != nil:
 			statusSource = source.Expense.txItem
 
+			classifier := source.Expense.Categories.Map()
+
 			txs[i].Items = []ledger.TxItem{
 				{
 					Account:  source.Expense.ExpenseAccount.Name,
 					Currency: source.Expense.ExpenseAccount.Currency,
 					Amount:   source.Expense.ExpenseAmount,
 				},
+				{
+					Account:  classifier[categoryClassifier],
+					Currency: source.Expense.ExpenseAccount.Currency,
+					Amount:   -source.Expense.ExpenseAmount,
+				},
 			}
 		case source.Income != nil:
 			statusSource = source.Income.txItem
+
+			classifier := source.Expense.Categories.Map()
 
 			txs[i].Items = []ledger.TxItem{
 				{
 					Account:  source.Income.IncomeAccount.Name,
 					Currency: source.Income.IncomeAccount.Currency,
 					Amount:   source.Income.IncomeAmount,
+				},
+				{
+					Account:  classifier[categoryClassifier],
+					Currency: source.Income.IncomeAccount.Currency,
+					Amount:   -source.Income.IncomeAmount,
 				},
 			}
 		case source.Balance != nil:

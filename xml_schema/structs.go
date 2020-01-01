@@ -70,13 +70,13 @@ type Transfer struct {
 type Income struct {
 	txItem
 	txIncome
-	Categories []txCategory `xml:"category"`
+	Categories txCategories `xml:"category"`
 }
 
 type Expense struct {
 	txItem
 	txExpense
-	Categories []txCategory `xml:"category"`
+	Categories txCategories `xml:"category"`
 }
 
 type Balance struct {
@@ -117,6 +117,8 @@ type txCategory struct {
 	Name       string      `xml:"name"`
 	Category   *txCategory `xml:"category"`
 }
+
+type txCategories []txCategory
 
 type Category struct {
 	item

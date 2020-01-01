@@ -41,7 +41,7 @@ func (d *Datafile) Export() (err error) {
 	if err = d.exportEntity("rates", d.db); err != nil {
 		return
 	}
-	if err = d.exportEntity("txs", d.db.LedgerTransactions()); err != nil {
+	if err = d.exportEntity("txs", d.db.LedgerTransactions(d.PrimaryClassifier)); err != nil {
 		return
 	}
 
@@ -128,7 +128,13 @@ func getTemplate(name string, funcs template.FuncMap) (*template.Template, error
 
 func (d *Datafile) account(name string) string {
 	format := fmt.Sprintf("%%-%ds", d.accountNameLength)
-	return fmt.Sprintf(format, d.Accounts[name])
+
+	account, ok := d.Accounts[name]
+	if !ok {
+		account = name
+	}
+
+	return fmt.Sprintf(format, account)
 }
 
 func signed(amount float64) string {
