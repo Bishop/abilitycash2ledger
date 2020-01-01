@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/Bishop/abilitycash2ledger/xml_schema"
 	"log"
 	"os"
 	"path"
 	"strings"
+	"text/template"
+	"unicode/utf8"
+
+	"github.com/Bishop/abilitycash2ledger/xml_schema"
 )
 
 type Scope struct {
@@ -14,10 +17,11 @@ type Scope struct {
 }
 
 type Datafile struct {
-	Path     string            `json:"path"`
-	Target   string            `json:"target"`
-	Accounts map[string]string `json:"accounts"`
-	db       *xml_schema.Database
+	Path              string            `json:"path"`
+	Target            string            `json:"target"`
+	Accounts          map[string]string `json:"accounts"`
+	accountNameLength int
+	db                *xml_schema.Database
 }
 
 type view struct {
@@ -27,6 +31,13 @@ type view struct {
 
 func (d *Datafile) Export(reader func(path string) *xml_schema.Database) {
 	d.db = reader(d.Path)
+
+	for _, accountName := range d.Accounts {
+		l := utf8.RuneCountInString(accountName)
+		if l > d.accountNameLength {
+			d.accountNameLength = l
+		}
+	}
 
 	outFilePrefix := strings.Replace(path.Base(d.Path), path.Ext(d.Path), "", 1)
 
@@ -40,7 +51,9 @@ func (d *Datafile) Export(reader func(path string) *xml_schema.Database) {
 }
 
 func (d *Datafile) exportEntity(outFilePrefix string, entity string) error {
-	t, err := getTemplate(entity)
+	t, err := getTemplate(entity, template.FuncMap{
+		"acc": d.account,
+	})
 
 	if err != nil {
 		return err
@@ -68,4 +81,9 @@ func (d *Datafile) exportEntity(outFilePrefix string, entity string) error {
 	}
 
 	return nil
+}
+
+func (d *Datafile) account(name string) string {
+	format := fmt.Sprintf("%%-%ds", d.accountNameLength)
+	return fmt.Sprintf(format, d.Accounts[name])
 }

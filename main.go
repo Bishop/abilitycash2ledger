@@ -179,7 +179,8 @@ func logEntity(e interface{}) {
 	log.Println(string(dump))
 }
 
-func getTemplate(name string) (*template.Template, error) {
+func getTemplate(name string, funcs template.FuncMap) (*template.Template, error) {
 	return template.New(fmt.Sprintf("%s.go.tmpl", name)).
+		Funcs(funcs).
 		ParseFiles(fmt.Sprintf("templates/%s.go.tmpl", name))
 }
