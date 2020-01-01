@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"text/template"
 	"unicode/utf8"
@@ -28,7 +27,9 @@ type Datafile struct {
 }
 
 func (d *Datafile) Export() (err error) {
-	d.readXmlDatabase()
+	if err = d.readXmlDatabase(); err != nil {
+		return
+	}
 
 	for _, accountName := range d.Accounts {
 		l := utf8.RuneCountInString(accountName)
@@ -80,7 +81,9 @@ func (d *Datafile) exportEntity(entityName string, data interface{}) error {
 func (d *Datafile) Validate() ([]string, error) {
 	messages := make([]string, 0)
 
-	d.readXmlDatabase()
+	if err := d.readXmlDatabase(); err != nil {
+		return nil, err
+	}
 
 	if len(d.db.AccountPlans) != 1 {
 		return nil, errors.New("something wrong with accounts plans")
@@ -100,16 +103,18 @@ func (d *Datafile) Validate() ([]string, error) {
 	return messages, nil
 }
 
-func (d *Datafile) readXmlDatabase() {
+func (d *Datafile) readXmlDatabase() error {
 	data, err := ioutil.ReadFile(d.Path)
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if err = xml.Unmarshal(data, &d.db); err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }
 
 func getTemplate(name string, funcs template.FuncMap) (*template.Template, error) {
