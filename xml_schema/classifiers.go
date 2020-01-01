@@ -1,7 +1,7 @@
 package xml_schema
 
 func (t *txCategory) Flatten() (string, string) {
-	name := t.Name
+	name := ""
 	next := t.Category
 
 	for next != nil {
@@ -9,7 +9,7 @@ func (t *txCategory) Flatten() (string, string) {
 		next = next.Category
 	}
 
-	return t.Classifier, name
+	return t.Classifier, name[1:]
 }
 
 func (t txCategories) Map() map[string]string {
