@@ -81,16 +81,14 @@ func add(c *cli.Context) error {
 }
 
 func prepare(c *cli.Context) error {
-	for _, datafile := range scope.Datafiles {
-		messages, err := datafile.Validate()
+	messages, err := scope.Validate()
 
-		if err != nil {
-			log.Fatal(err)
-		}
+	if err != nil {
+		return err
+	}
 
-		for _, m := range messages {
-			log.Println(m)
-		}
+	for _, m := range messages {
+		log.Println(m)
 	}
 
 	saveScope()
@@ -99,13 +97,7 @@ func prepare(c *cli.Context) error {
 }
 
 func convert(c *cli.Context) error {
-	for _, datafile := range scope.Datafiles {
-		if err := datafile.Export(); err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	return nil
+	return scope.Export()
 }
 
 func ensureFileExist(path string) {

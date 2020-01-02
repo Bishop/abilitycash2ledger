@@ -13,30 +13,81 @@ import (
 )
 
 type Scope struct {
-	Datafiles []*Datafile `json:"datafile"`
+	Datafiles []*Datafile                    `json:"datafiles"`
+	Common    map[string]EmbeddedClassifiers `json:"common"`
+}
+
+type EmbeddedClassifiers struct {
+	Accounts    map[string]string            `json:"accounts"`
+	Classifiers map[string]map[string]string `json:"classifiers"`
 }
 
 type Datafile struct {
-	Active            bool                         `json:"active"`
-	Equity            bool                         `json:"equity"`
-	Path              string                       `json:"path"`
-	Target            string                       `json:"target"`
-	Accounts          map[string]string            `json:"accounts"`
-	Classifiers       map[string]map[string]string `json:"classifiers"`
-	PrimaryClassifier string                       `json:"primary_classifier"`
-	AccountNameLength int                          `json:"account_name_length"`
+	Active bool   `json:"active"`
+	Equity bool   `json:"equity"`
+	Path   string `json:"path"`
+	Target string `json:"target"`
+	EmbeddedClassifiers
+	PrimaryClassifier string `json:"primary_classifier"`
+	CommonClassifiers string `json:"common_classifiers"`
+	AccountNameLength int    `json:"account_name_length"`
 	db                xml_schema.Database
 }
 
-func (d *Datafile) Export() (err error) {
-	if !d.Active {
-		return nil
+func (s *Scope) Validate() ([]string, error) {
+	messages := make([]string, 0)
+
+	if s.Common == nil {
+		s.Common = make(map[string]EmbeddedClassifiers)
 	}
 
-	if err = d.readXmlDatabase(); err != nil {
-		return
+	for _, datafile := range s.Datafiles {
+		if err := datafile.readXmlDatabase(); err != nil {
+			return nil, err
+		}
+
+		if datafile.CommonClassifiers != "" {
+			datafile.EmbeddedClassifiers = s.Common[datafile.CommonClassifiers]
+		}
+
+		err := datafile.validate(&messages)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if datafile.CommonClassifiers != "" {
+			s.Common[datafile.CommonClassifiers] = datafile.EmbeddedClassifiers
+			datafile.EmbeddedClassifiers = EmbeddedClassifiers{}
+		}
 	}
 
+	return messages, nil
+}
+
+func (s *Scope) Export() error {
+	if s.Common == nil {
+		s.Common = make(map[string]EmbeddedClassifiers)
+	}
+
+	for _, datafile := range s.Datafiles {
+		if !datafile.Active {
+			continue
+		}
+		if err := datafile.readXmlDatabase(); err != nil {
+			return err
+		}
+		if datafile.CommonClassifiers != "" {
+			datafile.EmbeddedClassifiers = s.Common[datafile.CommonClassifiers]
+		}
+		if err := datafile.export(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *Datafile) export() (err error) {
 	if err = d.exportEntity("rates", d.db); err != nil {
 		return
 	}
@@ -90,19 +141,13 @@ func (d *Datafile) exportEntity(entityName string, data interface{}) error {
 	return nil
 }
 
-func (d *Datafile) Validate() ([]string, error) {
-	messages := make([]string, 0)
-
-	if err := d.readXmlDatabase(); err != nil {
-		return nil, err
-	}
-
+func (d *Datafile) validate(messages *[]string) error {
 	if len(d.db.AccountPlans) != 1 {
-		return nil, errors.New("something wrong with accounts plans")
+		return errors.New("something wrong with accounts plans")
 	}
 
 	accounts := d.db.AccountPlans[0].Mappings(func(duplicate string) {
-		messages = append(messages, fmt.Sprintf("duplicate account name: %s", duplicate))
+		*messages = append(*messages, fmt.Sprintf("duplicate account name: %s", duplicate))
 	})
 
 	if d.Accounts == nil {
@@ -133,9 +178,9 @@ func (d *Datafile) Validate() ([]string, error) {
 		}
 	}
 
-	messages = append(messages, fmt.Sprintf("file %s is ok; found %d transactions\n", d.Path, len(d.db.Transactions)))
+	*messages = append(*messages, fmt.Sprintf("file %s is ok; found %d transactions\n", d.Path, len(d.db.Transactions)))
 
-	return messages, nil
+	return nil
 }
 
 func (d *Datafile) readXmlDatabase() error {
