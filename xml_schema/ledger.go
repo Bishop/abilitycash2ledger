@@ -8,18 +8,47 @@ type LedgerConverter struct {
 	Accounts          map[string]string
 	Classifiers       map[string]map[string]string
 	AccountClassifier string
+	GenerateEquity    bool
 	Db                *Database
 }
 
 func (c *LedgerConverter) Transactions() []ledger.Transaction {
-	txs := make([]ledger.Transaction, len(c.Db.Transactions))
+	shift := 0
+	if c.GenerateEquity {
+		shift = len(c.Db.Accounts)
+	}
+
+	txs := make([]ledger.Transaction, len(c.Db.Transactions)+shift)
+
+	if c.GenerateEquity {
+		for i, account := range c.Db.Accounts {
+			txs[i] = ledger.Transaction{
+				Date:        account.ChangedAt.Source(),
+				Description: "",
+				Items: []ledger.TxItem{
+					{
+						Account:  c.account(account.Name),
+						Currency: account.Currency,
+						Amount:   account.InitBalance,
+					},
+					{
+						Account:  "equity:opening balances",
+						Currency: account.Currency,
+						Amount:   -account.InitBalance,
+					},
+				},
+				Executed: true,
+			}
+		}
+	}
 
 	for i, source := range c.Db.Transactions {
-		txs[i] = ledger.Transaction{
+		txs[i+shift] = ledger.Transaction{
 			Date:        source.Date.Source(),
 			Description: source.Comment,
 			Items:       make([]ledger.TxItem, 2),
 		}
+		pTx := &txs[i+shift]
 
 		var statusSource txItem
 
@@ -27,7 +56,7 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 		case source.Transfer != nil:
 			statusSource = source.Transfer.txItem
 
-			txs[i].Items = []ledger.TxItem{
+			pTx.Items = []ledger.TxItem{
 				{
 					Account:  c.account(source.Transfer.ExpenseAccount.Name),
 					Currency: source.Transfer.ExpenseAccount.Currency,
@@ -44,7 +73,7 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 
 			classifier := source.Expense.Categories.Map()
 
-			txs[i].Items = []ledger.TxItem{
+			pTx.Items = []ledger.TxItem{
 				{
 					Account:  c.account(source.Expense.ExpenseAccount.Name),
 					Currency: source.Expense.ExpenseAccount.Currency,
@@ -61,7 +90,7 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 
 			classifier := source.Expense.Categories.Map()
 
-			txs[i].Items = []ledger.TxItem{
+			pTx.Items = []ledger.TxItem{
 				{
 					Account:  c.account(source.Income.IncomeAccount.Name),
 					Currency: source.Income.IncomeAccount.Currency,
@@ -77,8 +106,8 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 			statusSource = source.Balance.txItem
 		}
 
-		txs[i].Executed = statusSource.IsExecuted()
-		txs[i].Locked = statusSource.IsLocked()
+		pTx.Executed = statusSource.IsExecuted()
+		pTx.Locked = statusSource.IsLocked()
 	}
 
 	return txs

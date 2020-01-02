@@ -45,6 +45,7 @@ func (d *Datafile) Export() (err error) {
 		Accounts:          d.Accounts,
 		Classifiers:       d.Classifiers,
 		AccountClassifier: d.PrimaryClassifier,
+		GenerateEquity:    d.Equity,
 		Db:                &d.db,
 	}
 

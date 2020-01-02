@@ -26,6 +26,10 @@ func (a acTime) MarshalJSON() ([]byte, error) {
 	return json.Marshal(a.t)
 }
 
+func (a *acTime) Source() time.Time {
+	return a.t
+}
+
 type acDate struct {
 	d time.Time
 }
