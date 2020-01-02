@@ -4,10 +4,17 @@ import (
 	"github.com/Bishop/abilitycash2ledger/ledger"
 )
 
-func (d *Database) LedgerTransactions(categoryClassifier string) []ledger.Transaction {
-	txs := make([]ledger.Transaction, len(d.Transactions))
+type LedgerConverter struct {
+	Accounts          map[string]string
+	Classifiers       map[string]map[string]string
+	AccountClassifier string
+	Db                *Database
+}
 
-	for i, source := range d.Transactions {
+func (c *LedgerConverter) Transactions() []ledger.Transaction {
+	txs := make([]ledger.Transaction, len(c.Db.Transactions))
+
+	for i, source := range c.Db.Transactions {
 		txs[i] = ledger.Transaction{
 			Date:        source.Date.Source(),
 			Description: source.Comment,
@@ -22,12 +29,12 @@ func (d *Database) LedgerTransactions(categoryClassifier string) []ledger.Transa
 
 			txs[i].Items = []ledger.TxItem{
 				{
-					Account:  source.Transfer.ExpenseAccount.Name,
+					Account:  c.account(source.Transfer.ExpenseAccount.Name),
 					Currency: source.Transfer.ExpenseAccount.Currency,
 					Amount:   source.Transfer.ExpenseAmount,
 				},
 				{
-					Account:  source.Transfer.IncomeAccount.Name,
+					Account:  c.account(source.Transfer.IncomeAccount.Name),
 					Currency: source.Transfer.IncomeAccount.Currency,
 					Amount:   source.Transfer.IncomeAmount,
 				},
@@ -39,12 +46,12 @@ func (d *Database) LedgerTransactions(categoryClassifier string) []ledger.Transa
 
 			txs[i].Items = []ledger.TxItem{
 				{
-					Account:  source.Expense.ExpenseAccount.Name,
+					Account:  c.account(source.Expense.ExpenseAccount.Name),
 					Currency: source.Expense.ExpenseAccount.Currency,
 					Amount:   source.Expense.ExpenseAmount,
 				},
 				{
-					Account:  classifier[categoryClassifier],
+					Account:  c.accountFromCategories(classifier),
 					Currency: source.Expense.ExpenseAccount.Currency,
 					Amount:   -source.Expense.ExpenseAmount,
 				},
@@ -56,12 +63,12 @@ func (d *Database) LedgerTransactions(categoryClassifier string) []ledger.Transa
 
 			txs[i].Items = []ledger.TxItem{
 				{
-					Account:  source.Income.IncomeAccount.Name,
+					Account:  c.account(source.Income.IncomeAccount.Name),
 					Currency: source.Income.IncomeAccount.Currency,
 					Amount:   source.Income.IncomeAmount,
 				},
 				{
-					Account:  classifier[categoryClassifier],
+					Account:  c.accountFromCategories(classifier),
 					Currency: source.Income.IncomeAccount.Currency,
 					Amount:   -source.Income.IncomeAmount,
 				},
@@ -75,4 +82,12 @@ func (d *Database) LedgerTransactions(categoryClassifier string) []ledger.Transa
 	}
 
 	return txs
+}
+
+func (c *LedgerConverter) account(a string) string {
+	return c.Accounts[a]
+}
+
+func (c *LedgerConverter) accountFromCategories(classifier map[string]string) string {
+	return c.Classifiers[c.AccountClassifier][classifier[c.AccountClassifier]]
 }

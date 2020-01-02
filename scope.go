@@ -17,33 +17,32 @@ type Scope struct {
 }
 
 type Datafile struct {
-	Path              string               `json:"path"`
-	Target            string               `json:"target"`
-	Accounts          entityMap            `json:"accounts"`
-	Classifiers       map[string]entityMap `json:"classifiers"`
-	PrimaryClassifier string               `json:"primary_classifier"`
-	accountNameLength int
+	Path              string                       `json:"path"`
+	Target            string                       `json:"target"`
+	Accounts          map[string]string            `json:"accounts"`
+	Classifiers       map[string]map[string]string `json:"classifiers"`
+	PrimaryClassifier string                       `json:"primary_classifier"`
+	AccountNameLength int                          `json:"account_name_length"`
 	db                xml_schema.Database
 }
-
-type entityMap map[string]string
 
 func (d *Datafile) Export() (err error) {
 	if err = d.readXmlDatabase(); err != nil {
 		return
 	}
 
-	for _, accountName := range d.Accounts {
-		l := utf8.RuneCountInString(accountName)
-		if l > d.accountNameLength {
-			d.accountNameLength = l
-		}
-	}
-
 	if err = d.exportEntity("rates", d.db); err != nil {
 		return
 	}
-	if err = d.exportEntity("txs", d.db.LedgerTransactions(d.PrimaryClassifier)); err != nil {
+
+	converter := xml_schema.LedgerConverter{
+		Accounts:          d.Accounts,
+		Classifiers:       d.Classifiers,
+		AccountClassifier: d.PrimaryClassifier,
+		Db:                &d.db,
+	}
+
+	if err = d.exportEntity("txs", converter.Transactions()); err != nil {
 		return
 	}
 
@@ -51,8 +50,12 @@ func (d *Datafile) Export() (err error) {
 }
 
 func (d *Datafile) exportEntity(entityName string, data interface{}) error {
+	format := fmt.Sprintf("%%-%ds", d.AccountNameLength)
+
 	t, err := getTemplate(entityName, template.FuncMap{
-		"acc": d.account,
+		"acc": func(name string) string {
+			return fmt.Sprintf(format, name)
+		},
 	})
 
 	if err != nil {
@@ -96,28 +99,30 @@ func (d *Datafile) Validate() ([]string, error) {
 	})
 
 	if d.Accounts == nil {
-		d.Accounts = make(entityMap)
+		d.Accounts = make(map[string]string)
 	}
 
 	for accountShort, accountFull := range accounts {
 		if _, ok := d.Accounts[accountShort]; !ok {
 			d.Accounts[accountShort] = accountFull
 		}
+		d.checkAccountLength(d.Accounts[accountShort])
 	}
 
 	if d.Classifiers == nil {
-		d.Classifiers = make(map[string]entityMap)
+		d.Classifiers = make(map[string]map[string]string)
 	}
 
 	for _, c := range d.db.Classifiers {
 		if _, ok := d.Classifiers[c.Name]; !ok {
-			d.Classifiers[c.Name] = make(entityMap)
+			d.Classifiers[c.Name] = make(map[string]string)
 		}
 
 		for category := range c.Categories() {
 			if _, ok := d.Classifiers[c.Name][category]; !ok {
 				d.Classifiers[c.Name][category] = category
 			}
+			d.checkAccountLength(d.Classifiers[c.Name][category])
 		}
 	}
 
@@ -140,6 +145,13 @@ func (d *Datafile) readXmlDatabase() error {
 	return nil
 }
 
+func (d *Datafile) checkAccountLength(s string) {
+	l := utf8.RuneCountInString(s)
+	if l > d.AccountNameLength {
+		d.AccountNameLength = l
+	}
+}
+
 func getTemplate(name string, funcs template.FuncMap) (*template.Template, error) {
 	return template.New(fmt.Sprintf("%s.go.tmpl", name)).
 		Funcs(funcs).
@@ -147,17 +159,6 @@ func getTemplate(name string, funcs template.FuncMap) (*template.Template, error
 			"signed": signed,
 		}).
 		ParseFiles(fmt.Sprintf("templates/%s.go.tmpl", name))
-}
-
-func (d *Datafile) account(name string) string {
-	format := fmt.Sprintf("%%-%ds", d.accountNameLength)
-
-	account, ok := d.Accounts[name]
-	if !ok {
-		account = name
-	}
-
-	return fmt.Sprintf(format, account)
 }
 
 func signed(amount float64) string {
