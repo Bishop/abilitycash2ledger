@@ -47,7 +47,11 @@ type AccountPlan struct {
 
 type Classifier struct {
 	item
-	Name string `xml:"singular-name"`
+	Name       string         `xml:"singular-name"`
+	PluralName string         `xml:"plural-name"`
+	Income     []txCategoryTI `xml:"income-tree>category"`
+	Expense    []txCategoryTI `xml:"expense-tree>category"`
+	Single     []txCategoryTI `xml:"single-tree>category"`
 }
 
 type Transaction struct {
@@ -119,7 +123,7 @@ type txCategory struct {
 
 type txCategories []txCategory
 
-type Category struct {
-	item
-	Categories *[]Category `xml:"category"`
+type txCategoryTI struct {
+	Name       string          `xml:"name"`
+	Categories *[]txCategoryTI `xml:"category"`
 }

@@ -22,3 +22,34 @@ func (t txCategories) Map() map[string]string {
 
 	return result
 }
+
+func (c *Classifier) Categories() <-chan string {
+	result := make(chan string)
+
+	go func() {
+		for _, category := range c.Income {
+			category.iterateCategories("", result)
+		}
+		for _, category := range c.Expense {
+			category.iterateCategories("", result)
+		}
+		for _, category := range c.Single {
+			category.iterateCategories("", result)
+		}
+		close(result)
+	}()
+
+	return result
+}
+
+func (c *txCategoryTI) iterateCategories(prefix string, ch chan<- string) {
+	fullName := prefix + ":" + c.Name
+
+	ch <- fullName[1:]
+
+	if c.Categories != nil {
+		for _, category := range *c.Categories {
+			category.iterateCategories(fullName, ch)
+		}
+	}
+}

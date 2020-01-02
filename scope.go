@@ -17,14 +17,16 @@ type Scope struct {
 }
 
 type Datafile struct {
-	Path              string            `json:"path"`
-	Target            string            `json:"target"`
-	Accounts          map[string]string `json:"accounts"`
-	Classifiers       []string          `json:"classifiers"`
-	PrimaryClassifier string            `json:"primary_classifier"`
+	Path              string               `json:"path"`
+	Target            string               `json:"target"`
+	Accounts          entityMap            `json:"accounts"`
+	Classifiers       map[string]entityMap `json:"classifiers"`
+	PrimaryClassifier string               `json:"primary_classifier"`
 	accountNameLength int
 	db                xml_schema.Database
 }
+
+type entityMap map[string]string
 
 func (d *Datafile) Export() (err error) {
 	if err = d.readXmlDatabase(); err != nil {
@@ -94,7 +96,7 @@ func (d *Datafile) Validate() ([]string, error) {
 	})
 
 	if d.Accounts == nil {
-		d.Accounts = make(map[string]string)
+		d.Accounts = make(entityMap)
 	}
 
 	for accountShort, accountFull := range accounts {
@@ -103,9 +105,20 @@ func (d *Datafile) Validate() ([]string, error) {
 		}
 	}
 
-	d.Classifiers = make([]string, 0)
+	if d.Classifiers == nil {
+		d.Classifiers = make(map[string]entityMap)
+	}
+
 	for _, c := range d.db.Classifiers {
-		d.Classifiers = append(d.Classifiers, c.Name)
+		if _, ok := d.Classifiers[c.Name]; !ok {
+			d.Classifiers[c.Name] = make(entityMap)
+		}
+
+		for category := range c.Categories() {
+			if _, ok := d.Classifiers[c.Name][category]; !ok {
+				d.Classifiers[c.Name][category] = category
+			}
+		}
 	}
 
 	messages = append(messages, fmt.Sprintf("file %s is ok; found %d transactions\n", d.Path, len(d.db.Transactions)))
