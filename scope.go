@@ -89,9 +89,19 @@ func (d *Datafile) Validate() ([]string, error) {
 		return nil, errors.New("something wrong with accounts plans")
 	}
 
-	d.Accounts = d.db.AccountPlans[0].Mappings(func(duplicate string) {
+	accounts := d.db.AccountPlans[0].Mappings(func(duplicate string) {
 		messages = append(messages, fmt.Sprintf("duplicate account name: %s", duplicate))
 	})
+
+	if d.Accounts == nil {
+		d.Accounts = make(map[string]string)
+	}
+
+	for accountShort, accountFull := range accounts {
+		if _, ok := d.Accounts[accountShort]; !ok {
+			d.Accounts[accountShort] = accountFull
+		}
+	}
 
 	d.Classifiers = make([]string, 0)
 	for _, c := range d.db.Classifiers {
