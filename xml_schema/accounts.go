@@ -1,11 +1,11 @@
 package xml_schema
 
 func (a *AccountPlan) Mappings(logger func(s string)) map[string]string {
-	a.mapping = make(map[string]string)
+	mapping := make(map[string]string)
 
-	a.fillAccounts("", a.mapping, logger)
+	a.fillAccounts("", mapping, logger)
 
-	return a.mapping
+	return mapping
 }
 
 func (a *AccountPlan) fillAccounts(prefix string, target map[string]string, logger func(s string)) {

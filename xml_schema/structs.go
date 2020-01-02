@@ -43,7 +43,6 @@ type AccountPlan struct {
 	Comment  string        `xml:"comment"`
 	Accounts []Account     `xml:"account"`
 	Folders  []AccountPlan `xml:"folder"`
-	mapping  map[string]string
 }
 
 type Classifier struct {
