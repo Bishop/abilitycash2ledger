@@ -18,6 +18,7 @@ type Scope struct {
 
 type Datafile struct {
 	Active            bool                         `json:"active"`
+	Equity            bool                         `json:"equity"`
 	Path              string                       `json:"path"`
 	Target            string                       `json:"target"`
 	Accounts          map[string]string            `json:"accounts"`
