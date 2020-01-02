@@ -68,8 +68,11 @@ func add(c *cli.Context) error {
 		}
 	}
 
-	scope.Datafiles = append(scope.Datafiles, &Datafile{Path: newPath,
-		Target: strings.Replace(newPath, path.Ext(newPath), "", 1)})
+	scope.Datafiles = append(scope.Datafiles, &Datafile{
+		Active: true,
+		Path:   newPath,
+		Target: strings.Replace(newPath, path.Ext(newPath), "", 1),
+	})
 
 	saveScope()
 

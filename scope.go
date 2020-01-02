@@ -17,6 +17,7 @@ type Scope struct {
 }
 
 type Datafile struct {
+	Active            bool                         `json:"active"`
 	Path              string                       `json:"path"`
 	Target            string                       `json:"target"`
 	Accounts          map[string]string            `json:"accounts"`
@@ -27,6 +28,10 @@ type Datafile struct {
 }
 
 func (d *Datafile) Export() (err error) {
+	if !d.Active {
+		return nil
+	}
+
 	if err = d.readXmlDatabase(); err != nil {
 		return
 	}
