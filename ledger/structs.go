@@ -8,6 +8,7 @@ type Transaction struct {
 	Executed    bool
 	Locked      bool
 	Items       []TxItem
+	Tags        map[string]string
 }
 
 type TxItem struct {

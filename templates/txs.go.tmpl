@@ -1,6 +1,11 @@
 {{range .}}
 {{- if .Executed -}}
-{{.Date.Format "2006/01/02"}} {{.Description}}
+{{.Date.Format "2006/01/02"}} {{if .Locked}}* {{end}}{{.Description}}
+{{- if .Tags -}}
+    {{range $tag, $value := .Tags}}
+    ; {{$tag}}:{{$value}}
+    {{- end}}
+{{end -}}
 {{- range .Items}}
     {{acc .Account}}  {{signed .Amount}} {{.Currency}}
 {{- end}}

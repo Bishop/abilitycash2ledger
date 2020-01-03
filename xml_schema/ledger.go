@@ -24,7 +24,7 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 		for i, account := range c.Db.Accounts {
 			txs[i] = ledger.Transaction{
 				Date:        account.ChangedAt.Source(),
-				Description: "",
+				Description: "Opening Balance",
 				Items: []ledger.TxItem{
 					{
 						Account:  c.account(account.Name),
@@ -38,6 +38,7 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 					},
 				},
 				Executed: true,
+				Locked:   true,
 			}
 		}
 	}
@@ -71,8 +72,7 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 		case source.Expense != nil:
 			statusSource = source.Expense.txItem
 
-			classifier := source.Expense.Categories.Map()
-
+			pTx.Tags = source.Expense.Categories.Map()
 			pTx.Items = []ledger.TxItem{
 				{
 					Account:  c.account(source.Expense.ExpenseAccount.Name),
@@ -80,7 +80,7 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 					Amount:   source.Expense.ExpenseAmount,
 				},
 				{
-					Account:  c.accountFromCategories(classifier),
+					Account:  c.accountFromCategories(pTx.Tags),
 					Currency: source.Expense.ExpenseAccount.Currency,
 					Amount:   -source.Expense.ExpenseAmount,
 				},
@@ -88,8 +88,7 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 		case source.Income != nil:
 			statusSource = source.Income.txItem
 
-			classifier := source.Expense.Categories.Map()
-
+			pTx.Tags = source.Income.Categories.Map()
 			pTx.Items = []ledger.TxItem{
 				{
 					Account:  c.account(source.Income.IncomeAccount.Name),
@@ -97,7 +96,7 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 					Amount:   source.Income.IncomeAmount,
 				},
 				{
-					Account:  c.accountFromCategories(classifier),
+					Account:  c.accountFromCategories(pTx.Tags),
 					Currency: source.Income.IncomeAccount.Currency,
 					Amount:   -source.Income.IncomeAmount,
 				},
