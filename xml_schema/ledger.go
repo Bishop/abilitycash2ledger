@@ -47,7 +47,6 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 		txs[i+shift] = ledger.Transaction{
 			Date:        source.Date.Source(),
 			Description: source.Comment,
-			Items:       make([]ledger.TxItem, 2),
 		}
 		pTx := &txs[i+shift]
 
@@ -103,6 +102,19 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 			}
 		case source.Balance != nil:
 			statusSource = source.Balance.txItem
+
+			pTx.Items = []ledger.TxItem{
+				{
+					Account:  c.account(source.Balance.IncomeAccount.Name),
+					Currency: source.Balance.IncomeAccount.Currency,
+					Amount:   source.Balance.IncomeAmount,
+				},
+				{
+					Account:  "equity:correction",
+					Currency: source.Balance.IncomeAccount.Currency,
+					Amount:   -source.Balance.IncomeAmount,
+				},
+			}
 		}
 
 		pTx.Executed = statusSource.IsExecuted()
