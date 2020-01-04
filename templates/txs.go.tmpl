@@ -5,7 +5,7 @@
     {{range $tag, $value := .Tags}}
     ; {{$tag}}:{{$value}}
     {{- end}}
-{{end -}}
+{{- end -}}
 {{- range .Items}}
     {{acc .Account}}  {{signed .Amount}} {{.Currency}}
 {{- end}}
