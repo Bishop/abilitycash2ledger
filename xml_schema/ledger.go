@@ -112,6 +112,22 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 	return txs
 }
 
+func (c *LedgerConverter) AccountsList() <-chan string {
+	list := make(chan string)
+
+	go func() {
+		for _, account := range c.Accounts {
+			list <- account
+		}
+		for _, account := range c.Classifiers[c.AccountClassifier] {
+			list <- account
+		}
+		close(list)
+	}()
+
+	return list
+}
+
 func (c *LedgerConverter) account(a string) string {
 	return c.Accounts[a]
 }

@@ -104,6 +104,11 @@ func (d *Datafile) export() (err error) {
 		return
 	}
 
+	// $ ledger accounts
+	if err = d.exportEntity("accounts", converter.AccountsList()); err != nil {
+		return err
+	}
+
 	return
 }
 
