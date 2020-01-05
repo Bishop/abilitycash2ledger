@@ -26,6 +26,10 @@ func (c *LedgerConverter) Transactions() <-chan ledger.Transaction {
 func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 	if c.GenerateEquity {
 		for _, account := range c.Db.Accounts {
+			if account.InitBalance == 0 {
+				continue
+			}
+
 			txs <- ledger.Transaction{
 				Date:        account.ChangedAt.Source(),
 				Description: "Opening Balance",
