@@ -12,17 +12,21 @@ type LedgerConverter struct {
 	Db                *Database
 }
 
-func (c *LedgerConverter) Transactions() []ledger.Transaction {
-	shift := 0
-	if c.GenerateEquity {
-		shift = len(c.Db.Accounts)
-	}
+func (c *LedgerConverter) Transactions() <-chan ledger.Transaction {
+	txs := make(chan ledger.Transaction)
 
-	txs := make([]ledger.Transaction, len(c.Db.Transactions)+shift)
+	go func() {
+		c.transactions(txs)
+		close(txs)
+	}()
 
+	return txs
+}
+
+func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 	if c.GenerateEquity {
-		for i, account := range c.Db.Accounts {
-			txs[i] = ledger.Transaction{
+		for _, account := range c.Db.Accounts {
+			txs <- ledger.Transaction{
 				Date:        account.ChangedAt.Source(),
 				Description: "Opening Balance",
 				Items: []ledger.TxItem{
@@ -43,12 +47,11 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 		}
 	}
 
-	for i, source := range c.Db.Transactions {
-		txs[i+shift] = ledger.Transaction{
+	for _, source := range c.Db.Transactions {
+		tx := ledger.Transaction{
 			Date:        source.Date.Source(),
 			Description: source.Comment,
 		}
-		pTx := &txs[i+shift]
 
 		var statusSource txItem
 
@@ -56,7 +59,7 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 		case source.Transfer != nil:
 			statusSource = source.Transfer.txItem
 
-			pTx.Items = []ledger.TxItem{
+			tx.Items = []ledger.TxItem{
 				{
 					Account:  c.account(source.Transfer.ExpenseAccount.Name),
 					Currency: source.Transfer.ExpenseAccount.Currency,
@@ -71,15 +74,15 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 		case source.Expense != nil:
 			statusSource = source.Expense.txItem
 
-			pTx.Tags = source.Expense.Categories.Map()
-			pTx.Items = []ledger.TxItem{
+			tx.Tags = source.Expense.Categories.Map()
+			tx.Items = []ledger.TxItem{
 				{
 					Account:  c.account(source.Expense.ExpenseAccount.Name),
 					Currency: source.Expense.ExpenseAccount.Currency,
 					Amount:   source.Expense.ExpenseAmount,
 				},
 				{
-					Account:  c.accountFromCategories(pTx.Tags),
+					Account:  c.accountFromCategories(tx.Tags),
 					Currency: source.Expense.ExpenseAccount.Currency,
 					Amount:   -source.Expense.ExpenseAmount,
 				},
@@ -87,15 +90,15 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 		case source.Income != nil:
 			statusSource = source.Income.txItem
 
-			pTx.Tags = source.Income.Categories.Map()
-			pTx.Items = []ledger.TxItem{
+			tx.Tags = source.Income.Categories.Map()
+			tx.Items = []ledger.TxItem{
 				{
 					Account:  c.account(source.Income.IncomeAccount.Name),
 					Currency: source.Income.IncomeAccount.Currency,
 					Amount:   source.Income.IncomeAmount,
 				},
 				{
-					Account:  c.accountFromCategories(pTx.Tags),
+					Account:  c.accountFromCategories(tx.Tags),
 					Currency: source.Income.IncomeAccount.Currency,
 					Amount:   -source.Income.IncomeAmount,
 				},
@@ -103,7 +106,7 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 		case source.Balance != nil:
 			statusSource = source.Balance.txItem
 
-			pTx.Items = []ledger.TxItem{
+			tx.Items = []ledger.TxItem{
 				{
 					Account:  c.account(source.Balance.IncomeAccount.Name),
 					Currency: source.Balance.IncomeAccount.Currency,
@@ -117,11 +120,11 @@ func (c *LedgerConverter) Transactions() []ledger.Transaction {
 			}
 		}
 
-		pTx.Executed = statusSource.IsExecuted()
-		pTx.Locked = statusSource.IsLocked()
-	}
+		tx.Executed = statusSource.IsExecuted()
+		tx.Locked = statusSource.IsLocked()
 
-	return txs
+		txs <- tx
+	}
 }
 
 func (c *LedgerConverter) AccountsList() <-chan string {
