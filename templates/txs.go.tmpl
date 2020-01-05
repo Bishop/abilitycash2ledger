@@ -1,6 +1,6 @@
 {{range .}}
 {{- if .Executed -}}
-{{.Date.Format "2006/01/02"}} {{if .Locked}}* {{end}}{{.Description}}
+{{.Date.Format "2006/01/02"}}{{if .Locked}} *{{end}}{{if .Description}} {{.Description}}{{end}}
 {{- if .Tags -}}
     {{range $tag, $value := .Tags}}
     ; {{$tag}}:{{$value}}
