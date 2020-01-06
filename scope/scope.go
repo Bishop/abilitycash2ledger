@@ -1,15 +1,18 @@
-package main
+package scope
 
 import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/Bishop/abilitycash2ledger/ability_cash"
 	"io/ioutil"
 	"os"
+	"path"
+	"strings"
 	"text/template"
 	"unicode/utf8"
 
-	"github.com/Bishop/abilitycash2ledger/xml_schema"
+	"github.com/Bishop/abilitycash2ledger/ability_cash/xml_schema"
 )
 
 type Scope struct {
@@ -32,6 +35,23 @@ type Datafile struct {
 	CommonClassifiers string `json:"common_classifiers"`
 	AccountNameLength int    `json:"account_name_length"`
 	db                xml_schema.Database
+}
+
+func (s *Scope) AddFile(name string) error {
+	for _, df := range s.Datafiles {
+		if df.Path == name {
+			return errors.New(fmt.Sprintf("newPath %s already in the list", name))
+		}
+	}
+
+	s.Datafiles = append(s.Datafiles, &Datafile{
+		Active: true,
+		Equity: true,
+		Path:   name,
+		Target: strings.Replace(name, path.Ext(name), "", 1),
+	})
+
+	return nil
 }
 
 func (s *Scope) Validate() ([]string, error) {
@@ -92,7 +112,7 @@ func (d *Datafile) export() (err error) {
 		return
 	}
 
-	converter := xml_schema.LedgerConverter{
+	converter := ability_cash.LedgerConverter{
 		Accounts:          d.Accounts,
 		Classifiers:       d.Classifiers,
 		AccountClassifier: d.PrimaryClassifier,

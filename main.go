@@ -6,15 +6,15 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path"
-	"strings"
 
 	"github.com/urfave/cli/v2"
+
+	"github.com/Bishop/abilitycash2ledger/scope"
 )
 
 const scopeFile = "./scope.json"
 
-var scope = Scope{}
+var config = scope.Scope{}
 
 func main() {
 	readScope()
@@ -61,19 +61,7 @@ func add(c *cli.Context) error {
 
 	ensureFileExist(newPath)
 
-	for _, df := range scope.Datafiles {
-		if df.Path == newPath {
-			log.Printf("newPath %s already in the list", newPath)
-			return nil
-		}
-	}
-
-	scope.Datafiles = append(scope.Datafiles, &Datafile{
-		Active: true,
-		Equity: true,
-		Path:   newPath,
-		Target: strings.Replace(newPath, path.Ext(newPath), "", 1),
-	})
+	config.AddFile(newPath)
 
 	saveScope()
 
@@ -81,7 +69,7 @@ func add(c *cli.Context) error {
 }
 
 func prepare(c *cli.Context) error {
-	messages, err := scope.Validate()
+	messages, err := config.Validate()
 
 	if err != nil {
 		return err
@@ -97,7 +85,7 @@ func prepare(c *cli.Context) error {
 }
 
 func convert(c *cli.Context) error {
-	return scope.Export()
+	return config.Export()
 }
 
 func ensureFileExist(path string) {
@@ -116,11 +104,11 @@ func readScope() {
 		return
 	}
 
-	readConfig(scopeFile, &scope)
+	readConfig(scopeFile, &config)
 }
 
 func saveScope() {
-	if err := saveConfig(scopeFile, &scope); err != nil {
+	if err := saveConfig(scopeFile, &config); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -1,6 +1,7 @@
-package xml_schema
+package ability_cash
 
 import (
+	"github.com/Bishop/abilitycash2ledger/ability_cash/xml_schema"
 	"github.com/Bishop/abilitycash2ledger/ledger"
 )
 
@@ -9,7 +10,7 @@ type LedgerConverter struct {
 	Classifiers       map[string]map[string]string
 	AccountClassifier string
 	GenerateEquity    bool
-	Db                *Database
+	Db                *xml_schema.Database
 }
 
 func (c *LedgerConverter) Transactions() <-chan ledger.Transaction {
@@ -57,12 +58,8 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 			Description: source.Comment,
 		}
 
-		var statusSource txItem
-
 		switch {
 		case source.Transfer != nil:
-			statusSource = source.Transfer.txItem
-
 			tx.Items = []ledger.TxItem{
 				{
 					Account:  c.account(source.Transfer.ExpenseAccount.Name),
@@ -76,8 +73,6 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 				},
 			}
 		case source.Expense != nil:
-			statusSource = source.Expense.txItem
-
 			tx.Tags = source.Expense.Categories.Map()
 			tx.Items = []ledger.TxItem{
 				{
@@ -92,8 +87,6 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 				},
 			}
 		case source.Income != nil:
-			statusSource = source.Income.txItem
-
 			tx.Tags = source.Income.Categories.Map()
 			tx.Items = []ledger.TxItem{
 				{
@@ -108,8 +101,6 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 				},
 			}
 		case source.Balance != nil:
-			statusSource = source.Balance.txItem
-
 			tx.Items = []ledger.TxItem{
 				{
 					Account:  c.account(source.Balance.IncomeAccount.Name),
@@ -124,8 +115,8 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 			}
 		}
 
-		tx.Executed = statusSource.IsExecuted()
-		tx.Locked = statusSource.IsLocked()
+		tx.Executed = source.IsExecuted()
+		tx.Locked = source.IsLocked()
 
 		txs <- tx
 	}

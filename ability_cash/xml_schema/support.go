@@ -1,7 +1,6 @@
 package xml_schema
 
 import (
-	"encoding/json"
 	"encoding/xml"
 	"time"
 )
@@ -20,10 +19,6 @@ func (a *acTime) UnmarshalXMLAttr(attr xml.Attr) error {
 	}
 
 	return nil
-}
-
-func (a acTime) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a.t)
 }
 
 func (a *acTime) Source() time.Time {
@@ -52,10 +47,6 @@ func (a *acDate) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return nil
 }
 
-func (a acDate) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a.d)
-}
-
 func (a *acDate) Format(layout string) string {
 	return a.d.Format(layout)
 }
@@ -64,10 +55,25 @@ func (a *acDate) Source() time.Time {
 	return a.d
 }
 
-func (tx *txItem) IsExecuted() bool {
-	return tx.Executed != nil
+func (tx *Transaction) Item() *txItem {
+	switch {
+	case tx.Transfer != nil:
+		return &tx.Transfer.txItem
+	case tx.Expense != nil:
+		return &tx.Expense.txItem
+	case tx.Income != nil:
+		return &tx.Income.txItem
+	case tx.Balance != nil:
+		return &tx.Balance.txItem
+	}
+
+	return nil
 }
 
-func (tx *txItem) IsLocked() bool {
-	return tx.Locked != nil
+func (tx *Transaction) IsExecuted() bool {
+	return tx.Item().Executed != nil
+}
+
+func (tx *Transaction) IsLocked() bool {
+	return tx.Item().Locked != nil
 }
