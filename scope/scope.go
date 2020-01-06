@@ -4,7 +4,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/Bishop/abilitycash2ledger/ability_cash"
 	"io/ioutil"
 	"os"
 	"path"
@@ -12,15 +11,17 @@ import (
 	"text/template"
 	"unicode/utf8"
 
+	"github.com/Bishop/abilitycash2ledger/ability_cash"
 	"github.com/Bishop/abilitycash2ledger/ability_cash/xml_schema"
+	"github.com/Bishop/abilitycash2ledger/ledger"
 )
 
 type Scope struct {
 	Datafiles []*Datafile                    `json:"datafiles"`
-	Common    map[string]EmbeddedClassifiers `json:"common"`
+	Common    map[string]embeddedClassifiers `json:"common"`
 }
 
-type EmbeddedClassifiers struct {
+type embeddedClassifiers struct {
 	Accounts    map[string]string            `json:"accounts"`
 	Classifiers map[string]map[string]string `json:"classifiers"`
 }
@@ -30,7 +31,7 @@ type Datafile struct {
 	Equity bool   `json:"equity"`
 	Path   string `json:"path"`
 	Target string `json:"target"`
-	EmbeddedClassifiers
+	embeddedClassifiers
 	PrimaryClassifier string `json:"primary_classifier"`
 	CommonClassifiers string `json:"common_classifiers"`
 	AccountNameLength int    `json:"account_name_length"`
@@ -58,7 +59,7 @@ func (s *Scope) Validate() ([]string, error) {
 	messages := make([]string, 0)
 
 	if s.Common == nil {
-		s.Common = make(map[string]EmbeddedClassifiers)
+		s.Common = make(map[string]embeddedClassifiers)
 	}
 
 	for _, datafile := range s.Datafiles {
@@ -67,7 +68,7 @@ func (s *Scope) Validate() ([]string, error) {
 		}
 
 		if datafile.CommonClassifiers != "" {
-			datafile.EmbeddedClassifiers = s.Common[datafile.CommonClassifiers]
+			datafile.embeddedClassifiers = s.Common[datafile.CommonClassifiers]
 		}
 
 		err := datafile.validate(&messages)
@@ -77,8 +78,8 @@ func (s *Scope) Validate() ([]string, error) {
 		}
 
 		if datafile.CommonClassifiers != "" {
-			s.Common[datafile.CommonClassifiers] = datafile.EmbeddedClassifiers
-			datafile.EmbeddedClassifiers = EmbeddedClassifiers{}
+			s.Common[datafile.CommonClassifiers] = datafile.embeddedClassifiers
+			datafile.embeddedClassifiers = embeddedClassifiers{}
 		}
 	}
 
@@ -87,7 +88,7 @@ func (s *Scope) Validate() ([]string, error) {
 
 func (s *Scope) Export() error {
 	if s.Common == nil {
-		s.Common = make(map[string]EmbeddedClassifiers)
+		s.Common = make(map[string]embeddedClassifiers)
 	}
 
 	for _, datafile := range s.Datafiles {
@@ -98,7 +99,7 @@ func (s *Scope) Export() error {
 			return err
 		}
 		if datafile.CommonClassifiers != "" {
-			datafile.EmbeddedClassifiers = s.Common[datafile.CommonClassifiers]
+			datafile.embeddedClassifiers = s.Common[datafile.CommonClassifiers]
 		}
 		if err := datafile.export(); err != nil {
 			return err
@@ -112,7 +113,7 @@ func (d *Datafile) export() (err error) {
 		return
 	}
 
-	converter := ability_cash.LedgerConverter{
+	converter := &ability_cash.LedgerConverter{
 		Accounts:          d.Accounts,
 		Classifiers:       d.Classifiers,
 		AccountClassifier: d.PrimaryClassifier,
@@ -120,7 +121,7 @@ func (d *Datafile) export() (err error) {
 		Db:                &d.db,
 	}
 
-	if err = d.exportEntity("txs", converter.Transactions()); err != nil {
+	if err = d.exportTxs(converter); err != nil {
 		return
 	}
 
@@ -130,6 +131,10 @@ func (d *Datafile) export() (err error) {
 	}
 
 	return
+}
+
+func (d *Datafile) exportTxs(source ledger.Source) error {
+	return d.exportEntity("txs", source.Transactions())
 }
 
 func (d *Datafile) exportEntity(entityName string, data interface{}) error {

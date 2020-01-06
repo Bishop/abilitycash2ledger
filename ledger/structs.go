@@ -16,3 +16,7 @@ type TxItem struct {
 	Currency string
 	Amount   float64
 }
+
+type Source interface {
+	Transactions() <-chan Transaction
+}
