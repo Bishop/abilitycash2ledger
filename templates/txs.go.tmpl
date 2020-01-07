@@ -1,7 +1,7 @@
 {{range .}}
 {{.Date.Format "2006/01/02"}}{{if .Cleared}} *{{end}}{{if .Pending}} !{{end}}{{if .Note}} {{.Note}}{{end}}
-{{- if .Tags -}}
-    {{range $tag, $value := .Tags}}
+{{- if .Metadata -}}
+    {{range $tag, $value := .Metadata}}
     ; {{$tag}}:{{$value}}
     {{- end}}
 {{- end -}}

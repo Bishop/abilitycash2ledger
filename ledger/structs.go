@@ -3,13 +3,15 @@ package ledger
 import "time"
 
 type Transaction struct {
-	Date    time.Time
-	Note    string
-	Cleared bool
-	Pending bool
-	Notes   []string
-	Items   []TxItem
-	Tags    map[string]string
+	Date          time.Time
+	Note          string
+	Cleared       bool
+	Pending       bool
+	Notes         []string
+	Items         []TxItem
+	Metadata      map[string]string
+	TypedMetadata map[string]interface{}
+	Tags          []string
 }
 
 type TxItem struct {
@@ -20,6 +22,8 @@ type TxItem struct {
 	Cleared  bool
 	Pending  bool
 	Payee    string
+	Virtual  bool
+	Balanced bool
 }
 
 type Source interface {

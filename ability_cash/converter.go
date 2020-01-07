@@ -76,7 +76,7 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 				},
 			}
 		case source.Expense != nil:
-			tx.Tags = source.Expense.Categories.Map()
+			tx.Metadata = source.Expense.Categories.Map()
 			tx.Items = []ledger.TxItem{
 				{
 					Account:  c.account(source.Expense.ExpenseAccount.Name),
@@ -84,13 +84,13 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 					Amount:   source.Expense.ExpenseAmount,
 				},
 				{
-					Account:  c.accountFromCategories(tx.Tags),
+					Account:  c.accountFromCategories(tx.Metadata),
 					Currency: source.Expense.ExpenseAccount.Currency,
 					Amount:   -source.Expense.ExpenseAmount,
 				},
 			}
 		case source.Income != nil:
-			tx.Tags = source.Income.Categories.Map()
+			tx.Metadata = source.Income.Categories.Map()
 			tx.Items = []ledger.TxItem{
 				{
 					Account:  c.account(source.Income.IncomeAccount.Name),
@@ -98,7 +98,7 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 					Amount:   source.Income.IncomeAmount,
 				},
 				{
-					Account:  c.accountFromCategories(tx.Tags),
+					Account:  c.accountFromCategories(tx.Metadata),
 					Currency: source.Income.IncomeAccount.Currency,
 					Amount:   -source.Income.IncomeAmount,
 				},
