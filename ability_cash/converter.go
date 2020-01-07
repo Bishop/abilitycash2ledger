@@ -32,8 +32,8 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 			}
 
 			txs <- ledger.Transaction{
-				Date:        account.ChangedAt.Source(),
-				Description: "Opening Balance",
+				Date: account.ChangedAt.Source(),
+				Note: "Opening Balance",
 				Items: []ledger.TxItem{
 					{
 						Account:  c.account(account.Name),
@@ -46,16 +46,19 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 						Amount:   -account.InitBalance,
 					},
 				},
-				Executed: true,
-				Locked:   true,
+				Cleared: true,
 			}
 		}
 	}
 
 	for _, source := range c.Db.Transactions {
+		if !source.IsExecuted() {
+			continue
+		}
+
 		tx := ledger.Transaction{
-			Date:        source.Date.Source(),
-			Description: source.Comment,
+			Date: source.Date.Source(),
+			Note: source.Comment,
 		}
 
 		switch {
@@ -115,8 +118,7 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 			}
 		}
 
-		tx.Executed = source.IsExecuted()
-		tx.Locked = source.IsLocked()
+		tx.Cleared = source.IsLocked()
 
 		txs <- tx
 	}
