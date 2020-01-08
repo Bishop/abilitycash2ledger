@@ -14,7 +14,7 @@ import (
 
 const scopeFile = "./scope.json"
 
-var config = scope.Scope{}
+var config = scope.NewScope()
 
 func main() {
 	readScope()

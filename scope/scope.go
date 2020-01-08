@@ -16,8 +16,12 @@ import (
 	"github.com/Bishop/abilitycash2ledger/ledger"
 )
 
-type Scope struct {
-	Datafiles []*Datafile                    `json:"datafiles"`
+func NewScope() *scope {
+	return &scope{}
+}
+
+type scope struct {
+	Datafiles []*datafile                    `json:"datafiles"`
 	Common    map[string]embeddedClassifiers `json:"common"`
 }
 
@@ -26,7 +30,7 @@ type embeddedClassifiers struct {
 	Classifiers map[string]map[string]string `json:"classifiers"`
 }
 
-type Datafile struct {
+type datafile struct {
 	Active bool   `json:"active"`
 	Equity bool   `json:"equity"`
 	Path   string `json:"path"`
@@ -38,14 +42,14 @@ type Datafile struct {
 	db                xml_schema.Database
 }
 
-func (s *Scope) AddFile(name string) error {
+func (s *scope) AddFile(name string) error {
 	for _, df := range s.Datafiles {
 		if df.Path == name {
 			return errors.New(fmt.Sprintf("newPath %s already in the list", name))
 		}
 	}
 
-	s.Datafiles = append(s.Datafiles, &Datafile{
+	s.Datafiles = append(s.Datafiles, &datafile{
 		Active: true,
 		Equity: true,
 		Path:   name,
@@ -55,7 +59,7 @@ func (s *Scope) AddFile(name string) error {
 	return nil
 }
 
-func (s *Scope) Validate() ([]string, error) {
+func (s *scope) Validate() ([]string, error) {
 	messages := make([]string, 0)
 
 	if s.Common == nil {
@@ -86,7 +90,7 @@ func (s *Scope) Validate() ([]string, error) {
 	return messages, nil
 }
 
-func (s *Scope) Export() error {
+func (s *scope) Export() error {
 	if s.Common == nil {
 		s.Common = make(map[string]embeddedClassifiers)
 	}
@@ -108,7 +112,7 @@ func (s *Scope) Export() error {
 	return nil
 }
 
-func (d *Datafile) export() (err error) {
+func (d *datafile) export() (err error) {
 	if err = d.exportEntity("rates", d.db); err != nil {
 		return
 	}
@@ -133,11 +137,11 @@ func (d *Datafile) export() (err error) {
 	return
 }
 
-func (d *Datafile) exportTxs(source ledger.Source) error {
+func (d *datafile) exportTxs(source ledger.Source) error {
 	return d.exportEntity("txs", source.Transactions())
 }
 
-func (d *Datafile) exportEntity(entityName string, data interface{}) error {
+func (d *datafile) exportEntity(entityName string, data interface{}) error {
 	format := fmt.Sprintf("%%-%ds", d.AccountNameLength)
 
 	t, err := getTemplate(entityName, template.FuncMap{
@@ -171,7 +175,7 @@ func (d *Datafile) exportEntity(entityName string, data interface{}) error {
 	return nil
 }
 
-func (d *Datafile) validate(messages *[]string) error {
+func (d *datafile) validate(messages *[]string) error {
 	if len(d.db.AccountPlans) != 1 {
 		return errors.New("something wrong with accounts plans")
 	}
@@ -213,7 +217,7 @@ func (d *Datafile) validate(messages *[]string) error {
 	return nil
 }
 
-func (d *Datafile) readXmlDatabase() error {
+func (d *datafile) readXmlDatabase() error {
 	data, err := ioutil.ReadFile(d.Path)
 
 	if err != nil {
@@ -227,7 +231,7 @@ func (d *Datafile) readXmlDatabase() error {
 	return nil
 }
 
-func (d *Datafile) checkAccountLength(s string) {
+func (d *datafile) checkAccountLength(s string) {
 	l := utf8.RuneCountInString(s)
 	if l > d.AccountNameLength {
 		d.AccountNameLength = l
