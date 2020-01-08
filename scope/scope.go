@@ -17,7 +17,7 @@ import (
 )
 
 func NewScope() *scope {
-	return &scope{}
+	return new(scope)
 }
 
 type scope struct {
