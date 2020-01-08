@@ -26,8 +26,8 @@ type scope struct {
 }
 
 type embeddedClassifiers struct {
-	Accounts    map[string]string            `json:"accounts"`
-	Classifiers map[string]map[string]string `json:"classifiers"`
+	Accounts    ability_cash.AccountsMap    `json:"accounts"`
+	Classifiers ability_cash.ClassifiersMap `json:"classifiers"`
 }
 
 type datafile struct {
@@ -196,12 +196,12 @@ func (d *datafile) validate(messages *[]string) error {
 	}
 
 	if d.Classifiers == nil {
-		d.Classifiers = make(map[string]map[string]string)
+		d.Classifiers = make(ability_cash.ClassifiersMap)
 	}
 
 	for _, c := range d.db.Classifiers {
 		if _, ok := d.Classifiers[c.Name]; !ok {
-			d.Classifiers[c.Name] = make(map[string]string)
+			d.Classifiers[c.Name] = make(ability_cash.AccountsMap)
 		}
 
 		for category := range c.Categories() {

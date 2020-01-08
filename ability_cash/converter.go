@@ -6,12 +6,15 @@ import (
 )
 
 type LedgerConverter struct {
-	Accounts          map[string]string
-	Classifiers       map[string]map[string]string
+	Accounts          AccountsMap
+	Classifiers       ClassifiersMap
 	AccountClassifier string
 	GenerateEquity    bool
 	Db                *xml_schema.Database
 }
+
+type AccountsMap map[string]string
+type ClassifiersMap map[string]AccountsMap
 
 func (c *LedgerConverter) Transactions() <-chan ledger.Transaction {
 	txs := make(chan ledger.Transaction)
