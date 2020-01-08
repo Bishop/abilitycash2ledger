@@ -4,6 +4,7 @@ import "time"
 
 type Transaction struct {
 	Date          time.Time
+	Payee         string
 	Note          string
 	Cleared       bool
 	Pending       bool

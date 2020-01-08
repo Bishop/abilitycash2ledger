@@ -32,8 +32,8 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 			}
 
 			txs <- ledger.Transaction{
-				Date: account.ChangedAt.Source(),
-				Note: "Opening Balance",
+				Date:  account.ChangedAt.Source(),
+				Payee: "Opening Balance",
 				Items: []ledger.TxItem{
 					{
 						Account:  c.account(account.Name),
