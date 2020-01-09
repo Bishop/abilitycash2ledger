@@ -1,10 +1,8 @@
 package scope
 
 import (
-	"encoding/xml"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -12,7 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Bishop/abilitycash2ledger/ability_cash"
-	"github.com/Bishop/abilitycash2ledger/ability_cash/xml_schema"
+	"github.com/Bishop/abilitycash2ledger/ability_cash/schema"
 	"github.com/Bishop/abilitycash2ledger/ledger"
 )
 
@@ -39,7 +37,7 @@ type datafile struct {
 	PrimaryClassifier string `json:"primary_classifier"`
 	CommonClassifiers string `json:"common_classifiers"`
 	AccountNameLength int    `json:"account_name_length"`
-	db                xml_schema.Database
+	db                schema.Database
 }
 
 func (s *scope) AddFile(name string) error {
@@ -66,8 +64,10 @@ func (s *scope) Validate() ([]string, error) {
 		s.Common = make(map[string]embeddedClassifiers)
 	}
 
+	var err error
+
 	for _, datafile := range s.Datafiles {
-		if err := datafile.readXmlDatabase(); err != nil {
+		if datafile.db, err = ability_cash.ReadXmlDatabase(datafile.Path); err != nil {
 			return nil, err
 		}
 
@@ -95,11 +95,13 @@ func (s *scope) Export() error {
 		s.Common = make(map[string]embeddedClassifiers)
 	}
 
+	var err error
+
 	for _, datafile := range s.Datafiles {
 		if !datafile.Active {
 			continue
 		}
-		if err := datafile.readXmlDatabase(); err != nil {
+		if datafile.db, err = ability_cash.ReadXmlDatabase(datafile.Path); err != nil {
 			return err
 		}
 		if datafile.CommonClassifiers != "" {
@@ -122,7 +124,7 @@ func (d *datafile) export() (err error) {
 		Classifiers:       d.Classifiers,
 		AccountClassifier: d.PrimaryClassifier,
 		GenerateEquity:    d.Equity,
-		Db:                &d.db,
+		Db:                d.db,
 	}
 
 	if err = d.exportTxs(converter); err != nil {
@@ -176,11 +178,11 @@ func (d *datafile) exportEntity(entityName string, data interface{}) error {
 }
 
 func (d *datafile) validate(messages *[]string) error {
-	if len(d.db.AccountPlans) != 1 {
+	if len(*d.db.GetAccountPlans()) != 1 {
 		return errors.New("something wrong with accounts plans")
 	}
 
-	accounts := d.db.AccountPlans[0].Mappings(func(duplicate string) {
+	accounts := (*d.db.GetAccountPlans())[0].Mappings(func(duplicate string) {
 		*messages = append(*messages, fmt.Sprintf("duplicate account name: %s", duplicate))
 	})
 
@@ -199,7 +201,7 @@ func (d *datafile) validate(messages *[]string) error {
 		d.Classifiers = make(ability_cash.ClassifiersMap)
 	}
 
-	for _, c := range d.db.Classifiers {
+	for _, c := range *d.db.GetClassifiers() {
 		if _, ok := d.Classifiers[c.Name]; !ok {
 			d.Classifiers[c.Name] = make(ability_cash.AccountsMap)
 		}
@@ -212,21 +214,7 @@ func (d *datafile) validate(messages *[]string) error {
 		}
 	}
 
-	*messages = append(*messages, fmt.Sprintf("file %s is ok; found %d transactions\n", d.Path, len(d.db.Transactions)))
-
-	return nil
-}
-
-func (d *datafile) readXmlDatabase() error {
-	data, err := ioutil.ReadFile(d.Path)
-
-	if err != nil {
-		return err
-	}
-
-	if err = xml.Unmarshal(data, &d.db); err != nil {
-		return err
-	}
+	*messages = append(*messages, fmt.Sprintf("file %s is ok; found %d transactions\n", d.Path, len(*d.db.GetTransactions())))
 
 	return nil
 }

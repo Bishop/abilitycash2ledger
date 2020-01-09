@@ -1,7 +1,7 @@
 package ability_cash
 
 import (
-	"github.com/Bishop/abilitycash2ledger/ability_cash/xml_schema"
+	"github.com/Bishop/abilitycash2ledger/ability_cash/schema"
 	"github.com/Bishop/abilitycash2ledger/ledger"
 )
 
@@ -10,7 +10,7 @@ type LedgerConverter struct {
 	Classifiers       ClassifiersMap
 	AccountClassifier string
 	GenerateEquity    bool
-	Db                *xml_schema.Database
+	Db                schema.Database
 }
 
 type AccountsMap map[string]string
@@ -29,7 +29,7 @@ func (c *LedgerConverter) Transactions() <-chan ledger.Transaction {
 
 func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 	if c.GenerateEquity {
-		for _, account := range c.Db.Accounts {
+		for _, account := range *c.Db.GetAccounts() {
 			if account.InitBalance == 0 {
 				continue
 			}
@@ -54,7 +54,7 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 		}
 	}
 
-	for _, source := range c.Db.Transactions {
+	for _, source := range *c.Db.GetTransactions() {
 		if !source.IsExecuted() {
 			continue
 		}

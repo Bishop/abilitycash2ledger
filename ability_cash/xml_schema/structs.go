@@ -127,3 +127,19 @@ type txCategoryTI struct {
 	Name       string          `xml:"name"`
 	Categories *[]txCategoryTI `xml:"category"`
 }
+
+func (d *Database) GetAccounts() *[]Account {
+	return &d.Accounts
+}
+
+func (d *Database) GetTransactions() *[]Transaction {
+	return &d.Transactions
+}
+
+func (d *Database) GetClassifiers() *[]Classifier {
+	return &d.Classifiers
+}
+
+func (d *Database) GetAccountPlans() *[]AccountPlan {
+	return &d.AccountPlans
+}
