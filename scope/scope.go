@@ -34,7 +34,10 @@ type datafile struct {
 	Path   string `json:"path"`
 	Target string `json:"target"`
 	embeddedClassifiers
-	PrimaryClassifier string `json:"primary_classifier"`
+	ClassifiersMap struct {
+		Spending string `json:"spending"`
+		Payee    string `json:"payee"`
+	} `json:"classifiers_map"`
 	CommonClassifiers string `json:"common_classifiers"`
 	AccountNameLength int    `json:"account_name_length"`
 	db                schema.Database
@@ -114,6 +117,10 @@ func (s *scope) Export() error {
 	return nil
 }
 
+func (d *datafile) format() string {
+	return path.Ext(d.Path)[1:]
+}
+
 func (d *datafile) export() (err error) {
 	if err = d.exportEntity("rates", d.db); err != nil {
 		return
@@ -122,7 +129,7 @@ func (d *datafile) export() (err error) {
 	converter := &ability_cash.LedgerConverter{
 		Accounts:          d.Accounts,
 		Classifiers:       d.Classifiers,
-		AccountClassifier: d.PrimaryClassifier,
+		AccountClassifier: d.ClassifiersMap.Spending,
 		GenerateEquity:    d.Equity,
 		Db:                d.db,
 	}
