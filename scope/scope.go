@@ -243,5 +243,5 @@ func getTemplate(name string, funcs template.FuncMap) (*template.Template, error
 }
 
 func signed(amount float64) string {
-	return fmt.Sprintf("% g", amount)
+	return fmt.Sprintf("% f", amount)
 }
