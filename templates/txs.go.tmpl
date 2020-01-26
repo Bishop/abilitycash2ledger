@@ -6,6 +6,6 @@
     {{- end}}
 {{- end -}}
 {{- range .Items}}
-    {{acc .Account}}  {{signed .Amount}} {{.Currency}}{{if .Payee}} ; Payee: {{.Payee}}{{end}}
+    {{acc .Account}}  {{ if .Amount}}{{signed .Amount}} {{.Currency}}{{end}}{{ if .BalanceAssertion}} = {{signed .BalanceAssertion}} {{.Currency}}{{end}}{{if .Payee}} ; Payee: {{.Payee}}{{end}}
 {{- end}}
 {{end}}

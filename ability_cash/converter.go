@@ -44,7 +44,7 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 						Amount:   account.InitBalance,
 					},
 					{
-						Account:  "equity:opening balances",
+						Account:  ledger.OpeningBalance,
 						Currency: account.Currency,
 						Amount:   -account.InitBalance,
 					},
@@ -82,9 +82,7 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 			tx.Metadata = source.Expense.Categories.Map()
 			tx.Items = []ledger.TxItem{
 				{
-					Account:  c.account(source.Expense.ExpenseAccount.Name),
-					Currency: source.Expense.ExpenseAccount.Currency,
-					Amount:   source.Expense.ExpenseAmount,
+					Account: c.account(source.Expense.ExpenseAccount.Name),
 				},
 				{
 					Account:  c.accountFromCategories(tx.Metadata),
@@ -96,9 +94,7 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 			tx.Metadata = source.Income.Categories.Map()
 			tx.Items = []ledger.TxItem{
 				{
-					Account:  c.account(source.Income.IncomeAccount.Name),
-					Currency: source.Income.IncomeAccount.Currency,
-					Amount:   source.Income.IncomeAmount,
+					Account: c.account(source.Income.IncomeAccount.Name),
 				},
 				{
 					Account:  c.accountFromCategories(tx.Metadata),
@@ -109,14 +105,12 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 		case source.Balance != nil:
 			tx.Items = []ledger.TxItem{
 				{
-					Account:  c.account(source.Balance.IncomeAccount.Name),
-					Currency: source.Balance.IncomeAccount.Currency,
-					Amount:   source.Balance.IncomeAmount,
+					Account:          c.account(source.Balance.IncomeAccount.Name),
+					Currency:         source.Balance.IncomeAccount.Currency,
+					BalanceAssertion: source.Balance.IncomeAmount,
 				},
 				{
-					Account:  "equity:correction",
-					Currency: source.Balance.IncomeAccount.Currency,
-					Amount:   -source.Balance.IncomeAmount,
+					Account: ledger.Adjustment,
 				},
 			}
 		}

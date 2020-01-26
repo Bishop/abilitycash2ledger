@@ -2,6 +2,11 @@ package ledger
 
 import "time"
 
+const (
+	OpeningBalance = "Equity:Opening balances"
+	Adjustment     = "Equity:Adjustments"
+)
+
 type Transaction struct {
 	Date          time.Time
 	Payee         string
@@ -23,8 +28,11 @@ type TxItem struct {
 	Cleared  bool
 	Pending  bool
 	Payee    string
+
 	Virtual  bool
 	Balanced bool
+
+	BalanceAssertion float64
 }
 
 type Source interface {
