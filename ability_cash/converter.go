@@ -94,12 +94,12 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 			tx.Metadata = source.Income.Categories.Map()
 			tx.Items = []ledger.TxItem{
 				{
-					Account: c.account(source.Income.IncomeAccount.Name),
+					Account:  c.account(source.Income.IncomeAccount.Name),
+					Currency: source.Income.IncomeAccount.Currency,
+					Amount:   source.Income.IncomeAmount,
 				},
 				{
-					Account:  c.accountFromCategories(tx.Metadata),
-					Currency: source.Income.IncomeAccount.Currency,
-					Amount:   -source.Income.IncomeAmount,
+					Account: c.accountFromCategories(tx.Metadata),
 				},
 			}
 		case source.Balance != nil:
