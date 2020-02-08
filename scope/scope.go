@@ -243,5 +243,7 @@ func getTemplate(name string, funcs template.FuncMap) (*template.Template, error
 }
 
 func signed(amount float64) string {
-	return fmt.Sprintf("% f", amount)
+	// suppress exponent format floats
+	// print 110778000, not 1.10778e+08, and not 110778000.000000
+	return fmt.Sprintf("% .10g", amount)
 }
