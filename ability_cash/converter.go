@@ -107,7 +107,7 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 				{
 					Account:          c.account(source.Balance.IncomeAccount.Name),
 					Currency:         source.Balance.IncomeAccount.Currency,
-					BalanceAssertion: source.Balance.IncomeAmount,
+					BalanceAssertion: source.Balance.IncomeBalance,
 				},
 				{
 					Account: ledger.Adjustment,
