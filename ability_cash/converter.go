@@ -138,9 +138,19 @@ func (c *LedgerConverter) AccountsList() <-chan string {
 }
 
 func (c *LedgerConverter) account(a string) string {
-	return c.Accounts[a]
+	account, ok := c.Accounts[a]
+	if ok {
+		return account
+	} else {
+		return a
+	}
 }
 
 func (c *LedgerConverter) accountFromCategories(classifier map[string]string) string {
-	return c.Classifiers[c.AccountClassifier][classifier[c.AccountClassifier]]
+	cls, ok := c.Classifiers[c.AccountClassifier][classifier[c.AccountClassifier]]
+	if ok {
+		return cls
+	} else {
+		return classifier[c.AccountClassifier]
+	}
 }
