@@ -46,7 +46,7 @@ type datafile struct {
 func (s *scope) AddFile(name string) error {
 	for _, df := range s.Datafiles {
 		if df.Path == name {
-			return errors.New(fmt.Sprintf("newPath %s already in the list", name))
+			return errors.New(fmt.Sprintf("path %s already in the list", name))
 		}
 	}
 
@@ -54,7 +54,7 @@ func (s *scope) AddFile(name string) error {
 		Active: true,
 		Equity: true,
 		Path:   name,
-		Target: strings.Replace(name, path.Ext(name), "", 1),
+		Target: strings.TrimSuffix(name, path.Ext(name)),
 	})
 
 	return nil

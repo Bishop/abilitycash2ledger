@@ -54,18 +54,19 @@ func main() {
 
 func add(c *cli.Context) error {
 	if c.NArg() != 1 {
-		return errors.New("newPath to datafile is needed for add command")
+		return errors.New("path to datafile is needed for add command")
 	}
 
 	newPath := c.Args().First()
 
 	ensureFileExist(newPath)
 
-	config.AddFile(newPath)
-
-	saveScope()
-
-	return nil
+	if err := config.AddFile(newPath); err == nil {
+		saveScope()
+		return nil
+	} else {
+		return err
+	}
 }
 
 func prepare(c *cli.Context) error {
