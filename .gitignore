@@ -1,4 +1,6 @@
 scope.json
 
+ac_to_ledger.code-workspace
+
 *.dat
 *.xml
