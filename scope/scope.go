@@ -7,7 +7,6 @@ import (
 	"path"
 	"strings"
 	"text/template"
-	"unicode/utf8"
 
 	"github.com/Bishop/abilitycash2ledger/ability_cash"
 	"github.com/Bishop/abilitycash2ledger/ability_cash/schema"
@@ -39,7 +38,6 @@ type datafile struct {
 		Payee    string `json:"payee"`
 	} `json:"classifiers_map"`
 	CommonClassifiers string `json:"common_classifiers"`
-	AccountNameLength int    `json:"account_name_length"`
 	db                schema.Database
 }
 
@@ -151,7 +149,7 @@ func (d *datafile) exportTxs(source ledger.Source) error {
 }
 
 func (d *datafile) exportEntity(entityName string, data interface{}) error {
-	format := fmt.Sprintf("%%-%ds", d.AccountNameLength)
+	format := fmt.Sprintf("%%-%ds", 60)
 
 	t, err := getTemplate(entityName, template.FuncMap{
 		"acc": func(name string) string {
@@ -201,7 +199,6 @@ func (d *datafile) validate(messages *[]string) error {
 		if _, ok := d.Accounts[accountShort]; !ok {
 			d.Accounts[accountShort] = accountFull
 		}
-		d.checkAccountLength(d.Accounts[accountShort])
 	}
 
 	if d.Classifiers == nil {
@@ -217,20 +214,12 @@ func (d *datafile) validate(messages *[]string) error {
 			if _, ok := d.Classifiers[c.Name][category]; !ok {
 				d.Classifiers[c.Name][category] = category
 			}
-			d.checkAccountLength(d.Classifiers[c.Name][category])
 		}
 	}
 
 	*messages = append(*messages, fmt.Sprintf("file %s is ok; found %d transactions\n", d.Path, len(*d.db.GetTransactions())))
 
 	return nil
-}
-
-func (d *datafile) checkAccountLength(s string) {
-	l := utf8.RuneCountInString(s)
-	if l > d.AccountNameLength {
-		d.AccountNameLength = l
-	}
 }
 
 func getTemplate(name string, funcs template.FuncMap) (*template.Template, error) {

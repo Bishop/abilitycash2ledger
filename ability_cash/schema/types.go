@@ -8,5 +8,3 @@ type Database interface {
 	GetClassifiers() *[]xml_schema.Classifier
 	GetAccountPlans() *[]xml_schema.AccountPlan
 }
-
-type Accounts map[string]string
