@@ -35,7 +35,3 @@ type TxItem struct {
 
 	BalanceAssertion float64
 }
-
-type Source interface {
-	Transactions() <-chan Transaction
-}

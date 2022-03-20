@@ -9,7 +9,6 @@ import (
 
 	"github.com/Bishop/abilitycash2ledger/ability_cash"
 	"github.com/Bishop/abilitycash2ledger/ability_cash/schema"
-	"github.com/Bishop/abilitycash2ledger/ledger"
 )
 
 type datafile struct {
@@ -52,9 +51,7 @@ func (d *datafile) export(s *scope) (err error) {
 		Db:                d.db,
 	}
 
-	if err = d.exportTxs(converter); err != nil {
-		return
-	}
+	err = d.exportEntity("txs", converter.Transactions())
 
 	// $ ledger accounts
 	if err = d.exportEntity("accounts", converter.AccountsList()); err != nil {
@@ -62,10 +59,6 @@ func (d *datafile) export(s *scope) (err error) {
 	}
 
 	return
-}
-
-func (d *datafile) exportTxs(source ledger.Source) error {
-	return d.exportEntity("txs", source.Transactions())
 }
 
 func (d *datafile) exportEntity(entityName string, data interface{}) error {
