@@ -33,13 +33,13 @@ func (d *Database) Fill(record []string) {
 	}
 
 	if record[13] != "" {
-		tx.Metadata["Category"] = record[13]
+		tx.Metadata["Category"] = record[13][1:]
 	}
 	if record[14] != "" {
-		tx.Metadata["Provider"] = record[14]
+		tx.Metadata["Provider"] = record[14][1:]
 	}
 	if record[15] != "" {
-		tx.Metadata["Beneficiary"] = record[15]
+		tx.Metadata["Beneficiary"] = record[15][1:]
 	}
 
 	if record[3] != "" && record[6] != "" {
@@ -51,7 +51,7 @@ func (d *Database) Fill(record []string) {
 		tx.Items = []ledger.TxItem{
 			txItemFromStrings(record[3], record[4]),
 			{
-				Account: record[13],
+				Account: record[13][1:],
 			},
 		}
 	} else {
@@ -61,7 +61,7 @@ func (d *Database) Fill(record []string) {
 				Account: item.Account,
 			},
 			{
-				Account:  record[13],
+				Account:  record[13][1:],
 				Currency: item.Currency,
 				Amount:   -item.Amount,
 			},
