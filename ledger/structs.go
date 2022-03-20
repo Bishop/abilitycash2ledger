@@ -11,6 +11,7 @@ type Transaction struct {
 	Date          time.Time
 	Payee         string
 	Note          string
+	Executed      bool
 	Cleared       bool
 	Pending       bool
 	Notes         []string

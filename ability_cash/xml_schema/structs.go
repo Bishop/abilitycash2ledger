@@ -2,6 +2,10 @@ package xml_schema
 
 import (
 	"encoding/xml"
+	"log"
+
+	"github.com/Bishop/abilitycash2ledger/ability_cash/schema"
+	"github.com/Bishop/abilitycash2ledger/ledger"
 )
 
 type Database struct {
@@ -12,6 +16,7 @@ type Database struct {
 	AccountPlans []AccountPlan `xml:"account-plans>account-plan"`
 	Transactions []Transaction `xml:"transactions>transaction"`
 	Classifiers  []Classifier  `xml:"classifiers>classifier"`
+	AccountsMap  schema.AccountsMap
 }
 
 type Currency struct {
@@ -128,18 +133,151 @@ type txCategoryTI struct {
 	Categories *[]txCategoryTI `xml:"category"`
 }
 
-func (d *Database) GetAccounts() *[]Account {
-	return &d.Accounts
+func (d *Database) GetAccounts() *[]schema.Account {
+	d.cacheAccountsMap()
+
+	accounts := make([]schema.Account, len(d.Accounts))
+
+	for i, account := range d.Accounts {
+		accounts[i] = schema.Account{
+			Name:        d.account(account.Name),
+			Currency:    account.Currency,
+			InitBalance: account.InitBalance,
+		}
+	}
+
+	return &accounts
 }
 
-func (d *Database) GetTransactions() *[]Transaction {
-	return &d.Transactions
+func (d *Database) GetRates() *[]schema.Rate {
+	rates := make([]schema.Rate, len(d.Rates))
+
+	for i, rate := range d.Rates {
+		rates[i] = schema.Rate{
+			Date:      rate.Date.Source(),
+			Currency1: rate.Currency1,
+			Currency2: rate.Currency2,
+			Amount1:   rate.Amount1,
+			Amount2:   rate.Amount2,
+		}
+	}
+
+	return &rates
 }
 
-func (d *Database) GetClassifiers() *[]Classifier {
-	return &d.Classifiers
+func (d *Database) GetTransactions() *[]ledger.Transaction {
+	d.cacheAccountsMap()
+
+	txs := make([]ledger.Transaction, len(d.Transactions))
+
+	for i, source := range d.Transactions {
+		if !source.IsExecuted() {
+			continue
+		}
+
+		tx := ledger.Transaction{
+			Date:    source.Date.Source(),
+			Note:    source.Comment,
+			Cleared: source.IsLocked(),
+		}
+
+		switch {
+		case source.Transfer != nil:
+			tx.Items = []ledger.TxItem{
+				{
+					Account: d.account(source.Transfer.ExpenseAccount.Name),
+				},
+				{
+					Account:  d.account(source.Transfer.IncomeAccount.Name),
+					Currency: source.Transfer.IncomeAccount.Currency,
+					Amount:   source.Transfer.IncomeAmount,
+				},
+			}
+
+			if source.Transfer.IncomeAccount.Currency != source.Transfer.ExpenseAccount.Currency {
+				tx.Items[0].Currency = source.Transfer.ExpenseAccount.Currency
+				tx.Items[0].Amount = source.Transfer.ExpenseAmount
+			}
+		case source.Expense != nil:
+			tx.Metadata = source.Expense.Categories.Map()
+			tx.Items = []ledger.TxItem{
+				{
+					Account: d.account(source.Expense.ExpenseAccount.Name),
+				},
+				{
+					Account:  d.accountFromCategories(tx.Metadata),
+					Currency: source.Expense.ExpenseAccount.Currency,
+					Amount:   -source.Expense.ExpenseAmount,
+				},
+			}
+		case source.Income != nil:
+			tx.Metadata = source.Income.Categories.Map()
+			tx.Items = []ledger.TxItem{
+				{
+					Account:  d.account(source.Income.IncomeAccount.Name),
+					Currency: source.Income.IncomeAccount.Currency,
+					Amount:   source.Income.IncomeAmount,
+				},
+				{
+					Account: d.accountFromCategories(tx.Metadata),
+				},
+			}
+		case source.Balance != nil:
+			tx.Items = []ledger.TxItem{
+				{
+					Account:          d.account(source.Balance.IncomeAccount.Name),
+					Currency:         source.Balance.IncomeAccount.Currency,
+					BalanceAssertion: source.Balance.IncomeBalance,
+				},
+				{
+					Account: ledger.Adjustment,
+				},
+			}
+		}
+
+		txs[i] = tx
+	}
+
+	return &txs
 }
 
-func (d *Database) GetAccountPlans() *[]AccountPlan {
-	return &d.AccountPlans
+func (d *Database) GetClassifiers() *schema.ClassifiersList {
+	classifiers := make(schema.ClassifiersList)
+
+	for _, classifier := range d.Classifiers {
+		classifiers[classifier.Name] = make([]string, 0)
+
+		for category := range classifier.Categories() {
+			classifiers[classifier.Name] = append(classifiers[classifier.Name], category)
+		}
+	}
+
+	return &classifiers
+}
+
+func (d *Database) account(a string) string {
+	account, ok := d.AccountsMap[a]
+	if ok {
+		return account
+	} else {
+		return a
+	}
+}
+
+func (d *Database) accountFromCategories(classifier map[string]string) string {
+	return classifier["Статья"]
+}
+
+func (d *Database) cacheAccountsMap() {
+	if d.AccountsMap != nil {
+		return
+	}
+
+	if len(d.AccountPlans) != 1 {
+		log.Fatalln("something wrong with accounts plans")
+	}
+
+	d.AccountsMap = d.AccountPlans[0].Check(func(duplicate string) {
+		log.Fatalf("duplicate account name: %s", duplicate)
+	})
 }

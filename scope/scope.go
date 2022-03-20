@@ -3,14 +3,10 @@ package scope
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path"
 	"strings"
-	"text/template"
 
-	"github.com/Bishop/abilitycash2ledger/ability_cash"
 	"github.com/Bishop/abilitycash2ledger/ability_cash/schema"
-	"github.com/Bishop/abilitycash2ledger/ledger"
 )
 
 func NewScope() *scope {
@@ -18,27 +14,9 @@ func NewScope() *scope {
 }
 
 type scope struct {
-	Datafiles []*datafile                    `json:"datafiles"`
-	Common    map[string]embeddedClassifiers `json:"common"`
-}
-
-type embeddedClassifiers struct {
-	Accounts    ability_cash.AccountsMap    `json:"accounts"`
-	Classifiers ability_cash.ClassifiersMap `json:"classifiers"`
-}
-
-type datafile struct {
-	Active bool   `json:"active"`
-	Equity bool   `json:"equity"`
-	Path   string `json:"path"`
-	Target string `json:"target"`
-	embeddedClassifiers
-	ClassifiersMap struct {
-		Spending string `json:"spending"`
-		Payee    string `json:"payee"`
-	} `json:"classifiers_map"`
-	CommonClassifiers string `json:"common_classifiers"`
-	db                schema.Database
+	Datafiles   []*datafile           `json:"datafiles"`
+	Accounts    schema.AccountsMap    `json:"accounts"`
+	Classifiers schema.ClassifiersMap `json:"classifiers"`
 }
 
 func (s *scope) AddFile(name string) error {
@@ -61,40 +39,7 @@ func (s *scope) AddFile(name string) error {
 func (s *scope) Validate() ([]string, error) {
 	messages := make([]string, 0)
 
-	if s.Common == nil {
-		s.Common = make(map[string]embeddedClassifiers)
-	}
-
-	var err error
-
-	for _, datafile := range s.Datafiles {
-		if datafile.db, err = ability_cash.ReadXmlDatabase(datafile.Path); err != nil {
-			return nil, err
-		}
-
-		if datafile.CommonClassifiers != "" {
-			datafile.embeddedClassifiers = s.Common[datafile.CommonClassifiers]
-		}
-
-		err := datafile.validate(&messages)
-
-		if err != nil {
-			return nil, err
-		}
-
-		if datafile.CommonClassifiers != "" {
-			s.Common[datafile.CommonClassifiers] = datafile.embeddedClassifiers
-			datafile.embeddedClassifiers = embeddedClassifiers{}
-		}
-	}
-
-	return messages, nil
-}
-
-func (s *scope) Export() error {
-	if s.Common == nil {
-		s.Common = make(map[string]embeddedClassifiers)
-	}
+	s.init()
 
 	var err error
 
@@ -102,137 +47,65 @@ func (s *scope) Export() error {
 		if !datafile.Active {
 			continue
 		}
-		if datafile.db, err = ability_cash.ReadXmlDatabase(datafile.Path); err != nil {
-			return err
-		}
-		if datafile.CommonClassifiers != "" {
-			datafile.embeddedClassifiers = s.Common[datafile.CommonClassifiers]
-		}
-		if err := datafile.export(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
-func (d *datafile) format() string {
-	return path.Ext(d.Path)[1:]
-}
-
-func (d *datafile) export() (err error) {
-	if err = d.exportEntity("rates", d.db); err != nil {
-		return
-	}
-
-	converter := &ability_cash.LedgerConverter{
-		Accounts:          d.Accounts,
-		Classifiers:       d.Classifiers,
-		AccountClassifier: d.ClassifiersMap.Spending,
-		GenerateEquity:    d.Equity,
-		Db:                d.db,
-	}
-
-	if err = d.exportTxs(converter); err != nil {
-		return
-	}
-
-	// $ ledger accounts
-	if err = d.exportEntity("accounts", converter.AccountsList()); err != nil {
-		return err
-	}
-
-	return
-}
-
-func (d *datafile) exportTxs(source ledger.Source) error {
-	return d.exportEntity("txs", source.Transactions())
-}
-
-func (d *datafile) exportEntity(entityName string, data interface{}) error {
-	format := fmt.Sprintf("%%-%ds", 60)
-
-	t, err := getTemplate(entityName, template.FuncMap{
-		"acc": func(name string) string {
-			return fmt.Sprintf(format, name)
-		},
-	})
-
-	if err != nil {
-		return err
-	}
-
-	file, err := os.Create(fmt.Sprintf("%s-%s.dat", d.Target, entityName))
-
-	if err != nil {
-		return err
-	}
-
-	err = t.Execute(file, data)
-
-	if err != nil {
-		return err
-	}
-
-	err = file.Close()
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (d *datafile) validate(messages *[]string) error {
-	if len(*d.db.GetAccountPlans()) != 1 {
-		return errors.New("something wrong with accounts plans")
-	}
-
-	accounts := (*d.db.GetAccountPlans())[0].Mappings(func(duplicate string) {
-		*messages = append(*messages, fmt.Sprintf("duplicate account name: %s", duplicate))
-	})
-
-	if d.Accounts == nil {
-		d.Accounts = make(map[string]string)
-	}
-
-	for accountShort, accountFull := range accounts {
-		if _, ok := d.Accounts[accountShort]; !ok {
-			d.Accounts[accountShort] = accountFull
-		}
-	}
-
-	if d.Classifiers == nil {
-		d.Classifiers = make(ability_cash.ClassifiersMap)
-	}
-
-	for _, c := range *d.db.GetClassifiers() {
-		if _, ok := d.Classifiers[c.Name]; !ok {
-			d.Classifiers[c.Name] = make(ability_cash.AccountsMap)
+		if datafile.db, err = datafile.readDb(); err != nil {
+			return nil, err
 		}
 
-		for category := range c.Categories() {
-			if _, ok := d.Classifiers[c.Name][category]; !ok {
-				d.Classifiers[c.Name][category] = category
+		for _, account := range *datafile.db.GetAccounts() {
+			if _, ok := s.Accounts[account.Name]; !ok {
+				s.Accounts[account.Name] = account.Name
 			}
 		}
+
+		for name, c := range *datafile.db.GetClassifiers() {
+			if _, ok := s.Classifiers[name]; !ok {
+				s.Classifiers[name] = make(schema.AccountsMap)
+			}
+
+			for _, category := range c {
+				if _, ok := s.Classifiers[name][category]; !ok {
+					s.Classifiers[name][category] = category
+				}
+			}
+		}
+
+		messages = append(messages, fmt.Sprintf("file %s is ok; found %d transactions\n", datafile.Path, len(*datafile.db.GetTransactions())))
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	*messages = append(*messages, fmt.Sprintf("file %s is ok; found %d transactions\n", d.Path, len(*d.db.GetTransactions())))
+	return messages, nil
+}
 
+func (s *scope) Export() error {
+	s.init()
+
+	var err error
+
+	for _, datafile := range s.Datafiles {
+		if !datafile.Active {
+			continue
+		}
+		if datafile.db, err = datafile.readDb(); err != nil {
+			return err
+		}
+
+		if err := datafile.export(s); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
-func getTemplate(name string, funcs template.FuncMap) (*template.Template, error) {
-	return template.New(fmt.Sprintf("%s.go.tmpl", name)).
-		Funcs(funcs).
-		Funcs(template.FuncMap{
-			"signed": signed,
-		}).
-		ParseFiles(fmt.Sprintf("templates/%s.go.tmpl", name))
-}
+func (s *scope) init() {
+	if s.Accounts == nil {
+		s.Accounts = make(schema.AccountsMap)
+	}
 
-func signed(amount float64) string {
-	// suppress exponent format floats
-	// print 110778000, not 1.10778e+08, and not 110778000.000000
-	return fmt.Sprintf("% .10g", amount)
+	if s.Classifiers == nil {
+		s.Classifiers = make(schema.ClassifiersMap)
+	}
 }

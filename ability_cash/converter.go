@@ -1,20 +1,19 @@
 package ability_cash
 
 import (
+	"time"
+
 	"github.com/Bishop/abilitycash2ledger/ability_cash/schema"
 	"github.com/Bishop/abilitycash2ledger/ledger"
 )
 
 type LedgerConverter struct {
-	Accounts          AccountsMap
-	Classifiers       ClassifiersMap
+	Accounts          schema.AccountsMap
+	Classifiers       schema.ClassifiersMap
 	AccountClassifier string
 	GenerateEquity    bool
 	Db                schema.Database
 }
-
-type AccountsMap map[string]string
-type ClassifiersMap map[string]AccountsMap
 
 func (c *LedgerConverter) Transactions() <-chan ledger.Transaction {
 	txs := make(chan ledger.Transaction)
@@ -35,11 +34,11 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 			}
 
 			txs <- ledger.Transaction{
-				Date:  account.ChangedAt.Source(),
+				Date:  time.Date(1970, 1, 1, 0, 0, 0, 0, time.Local),
 				Payee: "Opening Balance",
 				Items: []ledger.TxItem{
 					{
-						Account:  c.account(account.Name),
+						Account:  account.Name,
 						Currency: account.Currency,
 						Amount:   account.InitBalance,
 					},
@@ -53,73 +52,7 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 			}
 		}
 	}
-
-	for _, source := range *c.Db.GetTransactions() {
-		if !source.IsExecuted() {
-			continue
-		}
-
-		tx := ledger.Transaction{
-			Date: source.Date.Source(),
-			Note: source.Comment,
-		}
-
-		switch {
-		case source.Transfer != nil:
-			tx.Items = []ledger.TxItem{
-				{
-					Account: c.account(source.Transfer.ExpenseAccount.Name),
-				},
-				{
-					Account:  c.account(source.Transfer.IncomeAccount.Name),
-					Currency: source.Transfer.IncomeAccount.Currency,
-					Amount:   source.Transfer.IncomeAmount,
-				},
-			}
-
-			if source.Transfer.IncomeAccount.Currency != source.Transfer.ExpenseAccount.Currency {
-				tx.Items[0].Currency = source.Transfer.ExpenseAccount.Currency
-				tx.Items[0].Amount = source.Transfer.ExpenseAmount
-			}
-		case source.Expense != nil:
-			tx.Metadata = source.Expense.Categories.Map()
-			tx.Items = []ledger.TxItem{
-				{
-					Account: c.account(source.Expense.ExpenseAccount.Name),
-				},
-				{
-					Account:  c.accountFromCategories(tx.Metadata),
-					Currency: source.Expense.ExpenseAccount.Currency,
-					Amount:   -source.Expense.ExpenseAmount,
-				},
-			}
-		case source.Income != nil:
-			tx.Metadata = source.Income.Categories.Map()
-			tx.Items = []ledger.TxItem{
-				{
-					Account:  c.account(source.Income.IncomeAccount.Name),
-					Currency: source.Income.IncomeAccount.Currency,
-					Amount:   source.Income.IncomeAmount,
-				},
-				{
-					Account: c.accountFromCategories(tx.Metadata),
-				},
-			}
-		case source.Balance != nil:
-			tx.Items = []ledger.TxItem{
-				{
-					Account:          c.account(source.Balance.IncomeAccount.Name),
-					Currency:         source.Balance.IncomeAccount.Currency,
-					BalanceAssertion: source.Balance.IncomeBalance,
-				},
-				{
-					Account: ledger.Adjustment,
-				},
-			}
-		}
-
-		tx.Cleared = source.IsLocked()
-
+	for _, tx := range *c.Db.GetTransactions() {
 		txs <- tx
 	}
 }
@@ -138,22 +71,4 @@ func (c *LedgerConverter) AccountsList() <-chan string {
 	}()
 
 	return list
-}
-
-func (c *LedgerConverter) account(a string) string {
-	account, ok := c.Accounts[a]
-	if ok {
-		return account
-	} else {
-		return a
-	}
-}
-
-func (c *LedgerConverter) accountFromCategories(classifier map[string]string) string {
-	cls, ok := c.Classifiers[c.AccountClassifier][classifier[c.AccountClassifier]]
-	if ok {
-		return cls
-	} else {
-		return classifier[c.AccountClassifier]
-	}
 }

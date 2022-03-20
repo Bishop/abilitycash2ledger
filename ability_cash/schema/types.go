@@ -1,10 +1,32 @@
 package schema
 
-import "github.com/Bishop/abilitycash2ledger/ability_cash/xml_schema"
+import (
+	"time"
+
+	"github.com/Bishop/abilitycash2ledger/ledger"
+)
 
 type Database interface {
-	GetAccounts() *[]xml_schema.Account
-	GetTransactions() *[]xml_schema.Transaction
-	GetClassifiers() *[]xml_schema.Classifier
-	GetAccountPlans() *[]xml_schema.AccountPlan
+	GetAccounts() *[]Account
+	GetTransactions() *[]ledger.Transaction
+	GetClassifiers() *ClassifiersList
+	GetRates() *[]Rate
 }
+
+type Account struct {
+	Name        string
+	Currency    string
+	InitBalance float64
+}
+
+type Rate struct {
+	Date      time.Time
+	Currency1 string
+	Currency2 string
+	Amount1   float64
+	Amount2   float64
+}
+
+type AccountsMap map[string]string
+type ClassifiersMap map[string]AccountsMap
+type ClassifiersList map[string][]string

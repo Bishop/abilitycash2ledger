@@ -5,7 +5,7 @@ func (t *txCategory) Flatten() (string, string) {
 	next := t.Category
 
 	for next != nil {
-		name = name + ":" + next.Name
+		name = name + "\\" + next.Name
 		next = next.Category
 	}
 
@@ -43,7 +43,7 @@ func (c *Classifier) Categories() <-chan string {
 }
 
 func (c *txCategoryTI) iterateCategories(prefix string, ch chan<- string) {
-	fullName := prefix + ":" + c.Name
+	fullName := prefix + "\\" + c.Name
 
 	ch <- fullName[1:]
 
