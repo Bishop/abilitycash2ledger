@@ -22,7 +22,7 @@ func main() {
 	app := cli.App{
 		Name:    "abilitycash2ledger",
 		Usage:   "abilitycash db to ledger converter",
-		Version: "0.0.2",
+		Version: "0.0.3",
 		Commands: []*cli.Command{
 			{
 				Name:    "add",
@@ -134,10 +134,4 @@ func saveConfig(filename string, config interface{}) error {
 	}
 
 	return ioutil.WriteFile(filename, data, 0600)
-}
-
-func logEntity(e interface{}) {
-	dump, _ := json.MarshalIndent(e, "", "  ")
-
-	log.Println(string(dump))
 }

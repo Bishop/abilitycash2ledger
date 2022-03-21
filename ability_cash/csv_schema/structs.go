@@ -12,14 +12,20 @@ import (
 
 // 0        1      2    3              4             5              6               7              8               9
 // Executed,Locked,Date,Income account,Income amount,Income balance,Expense account,Expense amount,Expense balance,Comment,
+// 10                   11                   12
+// Category of Category,Category of Provider,Category of Agent
 // 10         11           12       13                 14                    15
-// Recurrence,Day of month,Interval,Category of Статья,Category of Поставщик,Category of Агент
+// Recurrence,Day of month,Interval,Category of Category,Category of Provider,Category of Agent
 
 type Database struct {
 	Transactions []ledger.Transaction
 }
 
-func (d *Database) Fill(record []string) {
+func (d *Database) AddTx(record []string) {
+	if record[0] == "Executed" {
+		return
+	}
+
 	if d.Transactions == nil {
 		d.Transactions = make([]ledger.Transaction, 0)
 	}
@@ -32,14 +38,14 @@ func (d *Database) Fill(record []string) {
 		Metadata: make(map[string]string),
 	}
 
-	if record[13] != "" {
-		tx.Metadata["Category"] = record[13][1:]
+	if record[10] != "" {
+		tx.Metadata["Category"] = record[10][1:]
 	}
-	if record[14] != "" {
-		tx.Metadata["Provider"] = record[14][1:]
+	if record[11] != "" {
+		tx.Metadata["Provider"] = record[11][1:]
 	}
-	if record[15] != "" {
-		tx.Metadata["Beneficiary"] = record[15][1:]
+	if record[12] != "" {
+		tx.Metadata["Beneficiary"] = record[12][1:]
 	}
 
 	if record[3] != "" && record[6] != "" {
@@ -51,7 +57,7 @@ func (d *Database) Fill(record []string) {
 		tx.Items = []ledger.TxItem{
 			txItemFromStrings(record[3], record[4]),
 			{
-				Account: record[13][1:],
+				Account: record[10][1:],
 			},
 		}
 	} else {
@@ -61,7 +67,7 @@ func (d *Database) Fill(record []string) {
 				Account: item.Account,
 			},
 			{
-				Account:  record[13][1:],
+				Account:  record[10][1:],
 				Currency: item.Currency,
 				Amount:   -item.Amount,
 			},

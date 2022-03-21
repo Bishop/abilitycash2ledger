@@ -8,7 +8,9 @@ import (
 	"text/template"
 
 	"github.com/Bishop/abilitycash2ledger/ability_cash"
+	"github.com/Bishop/abilitycash2ledger/ability_cash/csv_schema"
 	"github.com/Bishop/abilitycash2ledger/ability_cash/schema"
+	"github.com/Bishop/abilitycash2ledger/ability_cash/xml_schema"
 )
 
 type datafile struct {
@@ -25,17 +27,17 @@ type datafile struct {
 
 func (d *datafile) readDb() (schema.Database, error) {
 	switch d.format() {
-	case "xml":
-		return ability_cash.ReadXmlDatabase(d.Path)
-	case "csv":
-		return ability_cash.ReadCsvDatabase(d.Path)
+	case ".xml":
+		return xml_schema.ReadDatabase(d.Path)
+	case "", ".csv":
+		return csv_schema.ReadDatabase(d.Path)
 	default:
 		return nil, errors.New("unknown format")
 	}
 }
 
 func (d *datafile) format() string {
-	return path.Ext(d.Path)[1:]
+	return path.Ext(d.Path)
 }
 
 func (d *datafile) export(s *scope) (err error) {
