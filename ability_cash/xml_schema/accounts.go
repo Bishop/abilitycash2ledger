@@ -7,11 +7,7 @@ func (a *AccountPlan) Check(logger func(s string)) schema.AccountsMap {
 }
 
 func (a *AccountPlan) Mappings() schema.AccountsMap {
-	mapping := make(map[string]string)
-
-	a.fillAccounts("", mapping, func(string) {})
-
-	return mapping
+	return a.mappings(func(string) {})
 }
 
 func (a *AccountPlan) mappings(logger func(s string)) schema.AccountsMap {
