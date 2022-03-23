@@ -45,7 +45,7 @@ func (d *Database) AddTx(record []string) {
 		Date:     parseDate(record[2]),
 		Note:     record[9],
 		Executed: record[0] == "+",
-		Cleared:  record[0] == "+",
+		Cleared:  record[1] == "+",
 		Metadata: make(map[string]string),
 	}
 

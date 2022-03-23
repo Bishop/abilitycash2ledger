@@ -1,5 +1,5 @@
 {{range .}}
-{{.Date.Format "2006/01/02"}}{{if .Cleared}} *{{end}}{{if .Pending}} !{{end}}{{if .Payee}} {{.Payee}}{{end}}{{if .Note}}  ; {{ .Note}}{{end}}
+{{.Date.Format "2006-01-02"}}{{if .Cleared}} *{{end}}{{if .Pending}} !{{end}}{{if .Payee}} {{.Payee}}{{end}}{{if .Note}}  ; {{ .Note}}{{end}}
 {{- if .Metadata -}}
     {{range $tag, $value := .Metadata}}
     ; {{$tag}}:{{$value}}
