@@ -18,16 +18,22 @@ import (
 // Recurrence,Day of month,Interval,Category of Category,Category of Provider,Category of Agent
 
 type Database struct {
+	Rates        []schema.Rate
 	Transactions []ledger.Transaction
+}
+
+func NewDatabase() *Database {
+	db := new(Database)
+
+	db.Rates = make([]schema.Rate, 0)
+	db.Transactions = make([]ledger.Transaction, 0)
+
+	return db
 }
 
 func (d *Database) AddTx(record []string) {
 	if record[0] == "Executed" {
 		return
-	}
-
-	if d.Transactions == nil {
-		d.Transactions = make([]ledger.Transaction, 0)
 	}
 
 	tx := ledger.Transaction{
@@ -77,6 +83,22 @@ func (d *Database) AddTx(record []string) {
 	d.Transactions = append(d.Transactions, tx)
 }
 
+func (d *Database) AddRate(record []string) {
+	if record[0] == "Date" {
+		return
+	}
+
+	rate := schema.Rate{
+		Date:      parseDate(record[0]),
+		Currency1: record[1],
+		Currency2: record[3],
+		Amount1:   parseFloat(record[2]),
+		Amount2:   parseFloat(record[4]),
+	}
+
+	d.Rates = append(d.Rates, rate)
+}
+
 func (d *Database) GetAccounts() *[]schema.Account {
 	accounts := make([]schema.Account, 0)
 
@@ -94,9 +116,7 @@ func (d *Database) GetClassifiers() *schema.ClassifiersList {
 }
 
 func (d *Database) GetRates() *[]schema.Rate {
-	rates := make([]schema.Rate, 0)
-
-	return &rates
+	return &d.Rates
 }
 
 func parseDate(s string) time.Time {
@@ -111,17 +131,22 @@ func parseDate(s string) time.Time {
 	return parse
 }
 
-func txItemFromStrings(accountString, amountString string) ledger.TxItem {
-	accountParts := strings.SplitN(accountString, " - ", 2)
-	amount, err := strconv.ParseFloat(amountString, 64)
+func parseFloat(s string) float64 {
+	amount, err := strconv.ParseFloat(s, 64)
 
 	if err != nil {
 		log.Fatalln(err)
 	}
 
+	return amount
+}
+
+func txItemFromStrings(accountString, amountString string) ledger.TxItem {
+	accountParts := strings.SplitN(accountString, " - ", 2)
+
 	return ledger.TxItem{
 		Account:  accountParts[1],
 		Currency: accountParts[0],
-		Amount:   amount,
+		Amount:   parseFloat(amountString),
 	}
 }

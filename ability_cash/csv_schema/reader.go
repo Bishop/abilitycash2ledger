@@ -10,9 +10,14 @@ import (
 )
 
 func ReadDatabase(fileName string) (schema.Database, error) {
-	db := new(Database)
+	db := NewDatabase()
 
-	err := readCsv(fileName, "txs.csv", db.AddTx)
+	err := readCsv(fileName, "rates.csv", db.AddRate)
+	if err != nil {
+		return nil, err
+	}
+
+	err = readCsv(fileName, "txs.csv", db.AddTx)
 	if err != nil {
 		return nil, err
 	}
