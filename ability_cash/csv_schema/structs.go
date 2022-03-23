@@ -20,6 +20,8 @@ import (
 type Database struct {
 	Rates        []schema.Rate
 	Classifiers  schema.ClassifiersList
+	Accounts     []schema.Account
+	AccountsMap  schema.AccountsMap
 	Transactions []ledger.Transaction
 }
 
@@ -31,6 +33,8 @@ func NewDatabase() *Database {
 	db.Classifiers["Category"] = make([]string, 0)
 	db.Classifiers["Provider"] = make([]string, 0)
 	db.Classifiers["Agent"] = make([]string, 0)
+	db.Accounts = make([]schema.Account, 0)
+	db.AccountsMap = make(schema.AccountsMap)
 	db.Transactions = make([]ledger.Transaction, 0)
 
 	return db
@@ -61,24 +65,24 @@ func (d *Database) AddTx(record []string) {
 
 	if record[3] != "" && record[6] != "" {
 		tx.Items = []ledger.TxItem{
-			txItemFromStrings(record[3], record[4]),
-			txItemFromStrings(record[6], record[7]),
+			d.txItemFromStrings(record[3], record[4]),
+			d.txItemFromStrings(record[6], record[7]),
 		}
 	} else if record[3] != "" {
 		tx.Items = []ledger.TxItem{
-			txItemFromStrings(record[3], record[4]),
+			d.txItemFromStrings(record[3], record[4]),
 			{
-				Account: record[10][1:],
+				Account: d.account(record[10][1:]),
 			},
 		}
 	} else {
-		item := txItemFromStrings(record[6], record[7])
+		item := d.txItemFromStrings(record[6], record[7])
 		tx.Items = []ledger.TxItem{
 			{
 				Account: item.Account,
 			},
 			{
-				Account:  record[10][1:],
+				Account:  d.account(record[10][1:]),
 				Currency: item.Currency,
 				Amount:   -item.Amount,
 			},
@@ -122,10 +126,39 @@ func (d *Database) AddCategory(record []string) {
 	}
 }
 
-func (d *Database) GetAccounts() *[]schema.Account {
-	accounts := make([]schema.Account, 0)
+func (d *Database) AddAccountMap(record []string) {
+	if record[0] == "Folder" {
+		return
+	}
 
-	return &accounts
+	dir := strings.Replace(record[0], "\\Root", "", 1)
+	dir = strings.Replace(dir, "\\", "", 1)
+
+	account := record[1]
+
+	if dir != "" {
+		account = strings.Join([]string{dir, account}, "\\")
+	}
+
+	d.AccountsMap[record[1]] = account
+}
+
+func (d *Database) AddAccount(record []string) {
+	if record[0] == "Name" {
+		return
+	}
+
+	account := schema.Account{
+		Name:        d.account(record[0]),
+		Currency:    record[1],
+		InitBalance: parseFloat(record[2]),
+	}
+
+	d.Accounts = append(d.Accounts, account)
+}
+
+func (d *Database) GetAccounts() *[]schema.Account {
+	return &d.Accounts
 }
 
 func (d *Database) GetTransactions() *[]ledger.Transaction {
@@ -138,6 +171,25 @@ func (d *Database) GetClassifiers() *schema.ClassifiersList {
 
 func (d *Database) GetRates() *[]schema.Rate {
 	return &d.Rates
+}
+
+func (d *Database) account(a string) string {
+	account, ok := d.AccountsMap[a]
+	if ok {
+		return account
+	} else {
+		return a
+	}
+}
+
+func (d *Database) txItemFromStrings(accountString, amountString string) ledger.TxItem {
+	accountParts := strings.SplitN(accountString, " - ", 2)
+
+	return ledger.TxItem{
+		Account:  d.account(accountParts[1]),
+		Currency: accountParts[0],
+		Amount:   parseFloat(amountString),
+	}
 }
 
 func parseDate(s string) time.Time {
@@ -160,14 +212,4 @@ func parseFloat(s string) float64 {
 	}
 
 	return amount
-}
-
-func txItemFromStrings(accountString, amountString string) ledger.TxItem {
-	accountParts := strings.SplitN(accountString, " - ", 2)
-
-	return ledger.TxItem{
-		Account:  accountParts[1],
-		Currency: accountParts[0],
-		Amount:   parseFloat(amountString),
-	}
 }

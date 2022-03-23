@@ -17,6 +17,16 @@ func ReadDatabase(fileName string) (schema.Database, error) {
 		return nil, err
 	}
 
+	err = readCsv(fileName, "structure.csv", db.AddAccountMap)
+	if err != nil {
+		return nil, err
+	}
+
+	err = readCsv(fileName, "accounts.csv", db.AddAccount)
+	if err != nil {
+		return nil, err
+	}
+
 	err = readCsv(fileName, "categories.csv", db.AddCategory)
 	if err != nil {
 		return nil, err
