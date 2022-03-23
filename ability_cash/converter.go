@@ -43,9 +43,7 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 						Amount:   account.InitBalance,
 					},
 					{
-						Account:  ledger.OpeningBalance,
-						Currency: account.Currency,
-						Amount:   -account.InitBalance,
+						Account: ledger.OpeningBalance,
 					},
 				},
 				Cleared: true,
