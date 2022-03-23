@@ -19,6 +19,7 @@ import (
 
 type Database struct {
 	Rates        []schema.Rate
+	Classifiers  schema.ClassifiersList
 	Transactions []ledger.Transaction
 }
 
@@ -26,6 +27,10 @@ func NewDatabase() *Database {
 	db := new(Database)
 
 	db.Rates = make([]schema.Rate, 0)
+	db.Classifiers = make(schema.ClassifiersList)
+	db.Classifiers["Category"] = make([]string, 0)
+	db.Classifiers["Provider"] = make([]string, 0)
+	db.Classifiers["Agent"] = make([]string, 0)
 	db.Transactions = make([]ledger.Transaction, 0)
 
 	return db
@@ -51,7 +56,7 @@ func (d *Database) AddTx(record []string) {
 		tx.Metadata["Provider"] = record[11][1:]
 	}
 	if record[12] != "" {
-		tx.Metadata["Beneficiary"] = record[12][1:]
+		tx.Metadata["Agent"] = record[12][1:]
 	}
 
 	if record[3] != "" && record[6] != "" {
@@ -99,6 +104,24 @@ func (d *Database) AddRate(record []string) {
 	d.Rates = append(d.Rates, rate)
 }
 
+func (d *Database) AddCategory(record []string) {
+	if record[0] == "Name" {
+		return
+	}
+
+	category := record[0][1:]
+	categoryParts := strings.SplitN(category, "\\", 2)
+
+	switch categoryParts[0] {
+	case "Income", "Expenses":
+		d.Classifiers["Category"] = append(d.Classifiers["Category"], category)
+	case "Payee":
+		d.Classifiers["Provider"] = append(d.Classifiers["Provider"], category)
+	case "Agents":
+		d.Classifiers["Agent"] = append(d.Classifiers["Agent"], category)
+	}
+}
+
 func (d *Database) GetAccounts() *[]schema.Account {
 	accounts := make([]schema.Account, 0)
 
@@ -110,9 +133,7 @@ func (d *Database) GetTransactions() *[]ledger.Transaction {
 }
 
 func (d *Database) GetClassifiers() *schema.ClassifiersList {
-	classifiers := make(schema.ClassifiersList)
-
-	return &classifiers
+	return &d.Classifiers
 }
 
 func (d *Database) GetRates() *[]schema.Rate {
