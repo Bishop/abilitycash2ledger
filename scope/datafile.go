@@ -64,13 +64,7 @@ func (d *datafile) export(s *scope) (err error) {
 }
 
 func (d *datafile) exportEntity(entityName string, data interface{}) error {
-	format := fmt.Sprintf("%%-%ds", 60)
-
-	t, err := getTemplate(entityName, template.FuncMap{
-		"acc": func(name string) string {
-			return fmt.Sprintf(format, name)
-		},
-	})
+	t, err := getTemplate(entityName)
 
 	if err != nil {
 		return err
@@ -97,13 +91,17 @@ func (d *datafile) exportEntity(entityName string, data interface{}) error {
 	return nil
 }
 
-func getTemplate(name string, funcs template.FuncMap) (*template.Template, error) {
+func getTemplate(name string) (*template.Template, error) {
 	return template.New(fmt.Sprintf("%s.go.tmpl", name)).
-		Funcs(funcs).
 		Funcs(template.FuncMap{
+			"acc":    acc,
 			"signed": signed,
 		}).
 		ParseFiles(fmt.Sprintf("templates/%s.go.tmpl", name))
+}
+
+func acc(account string) string {
+	return fmt.Sprintf("%-40s", account)
 }
 
 func signed(amount float64) string {
