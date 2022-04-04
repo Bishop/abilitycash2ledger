@@ -42,8 +42,6 @@ func (d *datafile) export(s *scope) (err error) {
 	}
 
 	converter := &ability_cash.LedgerConverter{
-		Accounts:       s.Accounts,
-		Classifiers:    s.Classifiers,
 		GenerateEquity: d.Equity,
 		Db:             d.db,
 	}

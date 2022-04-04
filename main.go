@@ -22,7 +22,7 @@ func main() {
 	app := cli.App{
 		Name:    "abilitycash2ledger",
 		Usage:   "abilitycash db to ledger converter",
-		Version: "0.0.3",
+		Version: "0.0.4",
 		Commands: []*cli.Command{
 			{
 				Name:    "add",

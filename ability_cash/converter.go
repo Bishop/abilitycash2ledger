@@ -9,8 +9,6 @@ import (
 )
 
 type LedgerConverter struct {
-	Accounts          schema.AccountsMap
-	Classifiers       schema.ClassifiersMap
 	AccountClassifier string
 	GenerateEquity    bool
 	Db                schema.Database
@@ -70,12 +68,15 @@ func (c *LedgerConverter) AccountsList() <-chan string {
 	list := make(chan string)
 
 	go func() {
-		for _, account := range c.Accounts {
-			list <- account
+		for _, account := range *c.Db.GetAccounts() {
+			list <- account.Name
 		}
-		for _, account := range c.Classifiers[schema.ExpensesClassifier] {
-			list <- account
+		if accounts, ok := (*c.Db.GetClassifiers())[schema.ExpensesClassifier]; ok {
+			for _, account := range accounts {
+				list <- account
+			}
 		}
+
 		close(list)
 	}()
 
