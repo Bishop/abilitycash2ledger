@@ -41,10 +41,6 @@ func NewDatabase() *Database {
 }
 
 func (d *Database) AddTx(record []string) {
-	if record[0] == "Executed" {
-		return
-	}
-
 	tx := ledger.Transaction{
 		Date:     parseDate(record[2]),
 		Note:     record[9],
@@ -99,10 +95,6 @@ func (d *Database) AddTx(record []string) {
 }
 
 func (d *Database) AddRate(record []string) {
-	if record[0] == "Date" {
-		return
-	}
-
 	rate := schema.Rate{
 		Date:      parseDate(record[0]),
 		Currency1: record[1],
@@ -115,10 +107,6 @@ func (d *Database) AddRate(record []string) {
 }
 
 func (d *Database) AddCategory(record []string) {
-	if record[0] == "Name" {
-		return
-	}
-
 	category := record[0][1:]
 	categoryParts := strings.SplitN(category, "\\", 2)
 
@@ -133,10 +121,6 @@ func (d *Database) AddCategory(record []string) {
 }
 
 func (d *Database) AddAccountMap(record []string) {
-	if record[0] == "Folder" {
-		return
-	}
-
 	dir := strings.Replace(record[0], "\\Root", "", 1)
 	dir = strings.Replace(dir, "\\", "", 1)
 
@@ -150,10 +134,6 @@ func (d *Database) AddAccountMap(record []string) {
 }
 
 func (d *Database) AddAccount(record []string) {
-	if record[0] == "Name" {
-		return
-	}
-
 	account := schema.Account{
 		Name:        d.account(record[0]),
 		Currency:    record[1],

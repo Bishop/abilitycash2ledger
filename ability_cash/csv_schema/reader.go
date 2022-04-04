@@ -50,6 +50,7 @@ func readCsv(dirName string, fileName string, handler func([]string)) error {
 	defer file.Close()
 
 	reader := csv.NewReader(file)
+	_, _ = reader.Read() // skip header
 
 	for {
 		record, err := reader.Read()
