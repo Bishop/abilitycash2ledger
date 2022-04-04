@@ -73,21 +73,10 @@ func (d *Database) AddTx(record []string) {
 	} else if record[3] != "" {
 		tx.Items = []ledger.TxItem{
 			d.txItemFromStrings(record[3], record[4]),
-			{
-				Account: d.account(tx.Metadata[schema.ExpensesClassifier]),
-			},
 		}
 	} else {
-		item := d.txItemFromStrings(record[6], record[7])
 		tx.Items = []ledger.TxItem{
-			{
-				Account: item.Account,
-			},
-			{
-				Account:  d.account(tx.Metadata[schema.ExpensesClassifier]),
-				Currency: item.Currency,
-				Amount:   -item.Amount,
-			},
+			d.txItemFromStrings(record[6], record[7]),
 		}
 	}
 

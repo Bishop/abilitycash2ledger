@@ -53,7 +53,31 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 	for _, tx := range *c.Db.GetTransactions() {
 		if tx.Payee == "" && tx.Metadata[schema.PayeeClassifier] != "" {
 			tx.Payee = c.lastPart(tx.Metadata[schema.PayeeClassifier])
+			delete(tx.Metadata, schema.PayeeClassifier)
 		}
+
+		if tx.Metadata[schema.ExpensesClassifier] != "" {
+			account := tx.Metadata[schema.ExpensesClassifier]
+			delete(tx.Metadata, schema.ExpensesClassifier)
+
+			if tx.Payee == "" && strings.Count(account, "\\") == 3 {
+				tx.Payee = c.lastPart(account)
+				account = strings.Replace(account, "\\"+tx.Payee, "", 1)
+			}
+
+			tx.Items = append(tx.Items, ledger.TxItem{Account: account})
+
+			if tx.Items[0].Amount < 0 {
+				tx.Items[1].Amount = -tx.Items[0].Amount
+				tx.Items[0].Amount = 0
+				tx.Items[1].Currency = tx.Items[0].Currency
+				tx.Items[0].Currency = ""
+			}
+		}
+
+		tx.Items[0].Account = c.account(tx.Items[0].Account)
+		tx.Items[1].Account = c.account(tx.Items[1].Account)
+
 		txs <- tx
 	}
 }
@@ -62,6 +86,13 @@ func (c *LedgerConverter) lastPart(account string) string {
 	parts := strings.Split(account, "\\")
 
 	return parts[len(parts)-1]
+}
+
+func (c *LedgerConverter) account(s string) string {
+	s = strings.Replace(s, "Assets\\", "", 1)
+	s = strings.Replace(s, "\\", ":", -1)
+
+	return s
 }
 
 func (c *LedgerConverter) AccountsList() <-chan string {
