@@ -6,6 +6,9 @@ import (
 	"github.com/Bishop/abilitycash2ledger/ledger"
 )
 
+const PayeeClassifier = "Provider"
+const ExpensesClassifier = "Category"
+
 type Database interface {
 	GetAccounts() *[]Account
 	GetTransactions() *[]ledger.Transaction

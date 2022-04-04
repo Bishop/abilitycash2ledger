@@ -30,8 +30,8 @@ func NewDatabase() *Database {
 
 	db.Rates = make([]schema.Rate, 0)
 	db.Classifiers = make(schema.ClassifiersList)
-	db.Classifiers["Category"] = make([]string, 0)
-	db.Classifiers["Provider"] = make([]string, 0)
+	db.Classifiers[schema.ExpensesClassifier] = make([]string, 0)
+	db.Classifiers[schema.PayeeClassifier] = make([]string, 0)
 	db.Classifiers["Agent"] = make([]string, 0)
 	db.Accounts = make([]schema.Account, 0)
 	db.AccountsMap = make(schema.AccountsMap)
@@ -54,10 +54,10 @@ func (d *Database) AddTx(record []string) {
 	}
 
 	if record[10] != "" {
-		tx.Metadata["Category"] = record[10][1:]
+		tx.Metadata[schema.ExpensesClassifier] = record[10][1:]
 	}
 	if record[11] != "" {
-		tx.Metadata["Provider"] = record[11][1:]
+		tx.Metadata[schema.PayeeClassifier] = record[11][1:]
 	}
 	if record[12] != "" {
 		tx.Metadata["Agent"] = record[12][1:]
@@ -68,11 +68,17 @@ func (d *Database) AddTx(record []string) {
 			d.txItemFromStrings(record[3], record[4]),
 			d.txItemFromStrings(record[6], record[7]),
 		}
+
+		if tx.Items[0].Currency == tx.Items[1].Currency {
+			tx.Payee = "Transfer"
+		} else {
+			tx.Payee = "Exchange"
+		}
 	} else if record[3] != "" {
 		tx.Items = []ledger.TxItem{
 			d.txItemFromStrings(record[3], record[4]),
 			{
-				Account: d.account(record[10][1:]),
+				Account: d.account(tx.Metadata[schema.ExpensesClassifier]),
 			},
 		}
 	} else {
@@ -82,7 +88,7 @@ func (d *Database) AddTx(record []string) {
 				Account: item.Account,
 			},
 			{
-				Account:  d.account(record[10][1:]),
+				Account:  d.account(tx.Metadata[schema.ExpensesClassifier]),
 				Currency: item.Currency,
 				Amount:   -item.Amount,
 			},
@@ -118,9 +124,9 @@ func (d *Database) AddCategory(record []string) {
 
 	switch categoryParts[0] {
 	case "Income", "Expenses":
-		d.Classifiers["Category"] = append(d.Classifiers["Category"], category)
+		d.Classifiers[schema.ExpensesClassifier] = append(d.Classifiers[schema.ExpensesClassifier], category)
 	case "Payee":
-		d.Classifiers["Provider"] = append(d.Classifiers["Provider"], category)
+		d.Classifiers[schema.PayeeClassifier] = append(d.Classifiers[schema.PayeeClassifier], category)
 	case "Agents":
 		d.Classifiers["Agent"] = append(d.Classifiers["Agent"], category)
 	}

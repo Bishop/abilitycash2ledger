@@ -14,15 +14,11 @@ import (
 )
 
 type datafile struct {
-	Active         bool   `json:"active"`
-	Equity         bool   `json:"equity"`
-	Path           string `json:"path"`
-	Target         string `json:"target"`
-	ClassifiersMap struct {
-		Spending string `json:"spending"`
-		Payee    string `json:"payee"`
-	} `json:"classifiers_map"`
-	db schema.Database
+	Active bool   `json:"active"`
+	Equity bool   `json:"equity"`
+	Path   string `json:"path"`
+	Target string `json:"target"`
+	db     schema.Database
 }
 
 func (d *datafile) readDb() (schema.Database, error) {
@@ -46,16 +42,14 @@ func (d *datafile) export(s *scope) (err error) {
 	}
 
 	converter := &ability_cash.LedgerConverter{
-		Accounts:          s.Accounts,
-		Classifiers:       s.Classifiers,
-		AccountClassifier: d.ClassifiersMap.Spending,
-		GenerateEquity:    d.Equity,
-		Db:                d.db,
+		Accounts:       s.Accounts,
+		Classifiers:    s.Classifiers,
+		GenerateEquity: d.Equity,
+		Db:             d.db,
 	}
 
 	err = d.exportEntity("txs", converter.Transactions())
 
-	// $ ledger accounts
 	if err = d.exportEntity("accounts", converter.AccountsList()); err != nil {
 		return err
 	}
