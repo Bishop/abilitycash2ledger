@@ -33,29 +33,27 @@ func (s *scope) AddFile(name string) error {
 }
 
 func (s *scope) Validate() ([]string, error) {
-	var err error
-
 	messages := make([]string, 0)
 
-	for _, datafile := range s.Datafiles {
-		if !datafile.Active {
-			continue
-		}
+	_ = s.iterateDatafiles(func(d *datafile) error {
+		_ = *d.db.GetAccounts()
+		_ = *d.db.GetClassifiers()
 
-		if datafile.db, err = datafile.readDb(); err != nil {
-			return nil, err
-		}
+		messages = append(messages, fmt.Sprintf("file %s is ok; found %d transactions\n", d.Path, len(*d.db.GetTransactions())))
 
-		_ = *datafile.db.GetAccounts()
-		_ = *datafile.db.GetClassifiers()
-
-		messages = append(messages, fmt.Sprintf("file %s is ok; found %d transactions\n", datafile.Path, len(*datafile.db.GetTransactions())))
-	}
+		return nil
+	})
 
 	return messages, nil
 }
 
 func (s *scope) Export() error {
+	return s.iterateDatafiles(func(d *datafile) error {
+		return d.export()
+	})
+}
+
+func (s *scope) iterateDatafiles(callback func(*datafile) error) error {
 	var err error
 
 	for _, datafile := range s.Datafiles {
@@ -66,9 +64,12 @@ func (s *scope) Export() error {
 			return err
 		}
 
-		if err := datafile.export(s); err != nil {
+		err = callback(datafile)
+
+		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }

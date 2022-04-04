@@ -36,7 +36,7 @@ func (d *datafile) format() string {
 	return path.Ext(d.Path)
 }
 
-func (d *datafile) export(s *scope) (err error) {
+func (d *datafile) export() (err error) {
 	if err = d.exportEntity("rates", d.db.GetRates()); err != nil {
 		return
 	}
