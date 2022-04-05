@@ -81,10 +81,10 @@ func (d *Database) readRates(uid int, fetch FetchFunc) error {
 
 	d.Rates = append(d.Rates, schema.Rate{
 		Date:      time.Unix(date, 0),
-		Currency1: d.currenciesIndexI[currency1].Code,
-		Currency2: d.currenciesIndexI[currency2].Code,
-		Amount1:   d.currenciesIndexI[currency1].ConvertAmount(value1),
-		Amount2:   d.currenciesIndexI[currency2].ConvertAmount(value2),
+		Currency1: d.currency(currency1).Code,
+		Currency2: d.currency(currency2).Code,
+		Amount1:   d.currency(currency1).ConvertAmount(value1),
+		Amount2:   d.currency(currency2).ConvertAmount(value2),
 	})
 
 	return nil
@@ -99,8 +99,8 @@ func (d *Database) readAccounts(uid int, fetch FetchFunc) error {
 		return err
 	}
 
-	account.Currency = d.currenciesIndexI[currencyId].Code
-	account.InitBalance = d.currenciesIndexI[currencyId].ConvertAmount(account.InitBalance)
+	account.Currency = d.currency(currencyId).Code
+	account.InitBalance = d.currency(currencyId).ConvertAmount(account.InitBalance)
 
 	d.Accounts = append(d.Accounts, account)
 	d.accountIndex[uid] = &account
@@ -189,7 +189,18 @@ func (d *Database) makeTxItem(accountId sql.NullInt32, amount sql.NullFloat64) l
 	return ledger.TxItem{
 		Account:  account.Name,
 		Currency: account.Currency,
-		Amount:   d.currenciesIndexS[account.Currency].ConvertAmount(amount.Float64),
+		Amount:   d.currency(account.Currency).ConvertAmount(amount.Float64),
+	}
+}
+
+func (d *Database) currency(id any) *Currency {
+	switch v := id.(type) {
+	case int:
+		return d.currenciesIndexI[v]
+	case string:
+		return d.currenciesIndexS[v]
+	default:
+		panic("Unknown id type")
 	}
 }
 
