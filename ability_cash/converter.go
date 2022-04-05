@@ -108,7 +108,7 @@ func (c *LedgerConverter) account(s string) string {
 		c.accounts[s] = a
 	}
 
-	return s
+	return a
 }
 
 func (c *LedgerConverter) Accounts() []string {
