@@ -47,37 +47,22 @@ func (d *Database) AddTx(record []string) {
 		Executed: record[0] == "+",
 		Cleared:  record[1] == "+",
 		Metadata: make(map[string]string),
+		Items:    []ledger.TxItem{},
 	}
 
-	if record[10] != "" {
-		tx.Metadata[schema.ExpensesClassifier] = record[10][1:]
-	}
-	if record[11] != "" {
-		tx.Metadata[schema.PayeeClassifier] = record[11][1:]
-	}
-	if record[12] != "" {
-		tx.Metadata["Agent"] = record[12][1:]
+	for _, category := range []string{record[10], record[11], record[12]} {
+		if category != "" {
+			category = category[1:]
+			tx.Metadata[schema.CategoryClassifier(category)] = category
+		}
 	}
 
-	if record[3] != "" && record[6] != "" {
-		tx.Items = []ledger.TxItem{
-			d.txItemFromStrings(record[3], record[4]),
-			d.txItemFromStrings(record[6], record[7]),
-		}
+	if record[3] != "" {
+		tx.Items = append(tx.Items, d.txItemFromStrings(record[3], record[4]))
+	}
 
-		if tx.Items[0].Currency == tx.Items[1].Currency {
-			tx.Payee = "Transfer"
-		} else {
-			tx.Payee = "Exchange"
-		}
-	} else if record[3] != "" {
-		tx.Items = []ledger.TxItem{
-			d.txItemFromStrings(record[3], record[4]),
-		}
-	} else {
-		tx.Items = []ledger.TxItem{
-			d.txItemFromStrings(record[6], record[7]),
-		}
+	if record[6] != "" {
+		tx.Items = append(tx.Items, d.txItemFromStrings(record[6], record[7]))
 	}
 
 	d.Transactions = append(d.Transactions, tx)
@@ -97,16 +82,9 @@ func (d *Database) AddRate(record []string) {
 
 func (d *Database) AddCategory(record []string) {
 	category := record[0][1:]
-	categoryParts := strings.SplitN(category, "\\", 2)
 
-	switch categoryParts[0] {
-	case "Income", "Expenses":
-		d.Classifiers[schema.ExpensesClassifier] = append(d.Classifiers[schema.ExpensesClassifier], category)
-	case "Payee":
-		d.Classifiers[schema.PayeeClassifier] = append(d.Classifiers[schema.PayeeClassifier], category)
-	case "Agents":
-		d.Classifiers["Agent"] = append(d.Classifiers["Agent"], category)
-	}
+	classifier := schema.CategoryClassifier(category)
+	d.Classifiers[classifier] = append(d.Classifiers[classifier], category)
 }
 
 func (d *Database) AddAccountMap(record []string) {

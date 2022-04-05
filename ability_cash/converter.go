@@ -9,9 +9,8 @@ import (
 )
 
 type LedgerConverter struct {
-	AccountClassifier string
-	GenerateEquity    bool
-	Db                schema.Database
+	GenerateEquity bool
+	Db             schema.Database
 }
 
 func (c *LedgerConverter) Transactions() <-chan ledger.Transaction {
@@ -40,7 +39,7 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 			}
 
 			tx.Items = append(tx.Items, ledger.TxItem{
-				Account:  account.Name,
+				Account:  c.account(account.Name),
 				Currency: account.Currency,
 				Amount:   account.InitBalance,
 			})
@@ -54,6 +53,14 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 		if tx.Payee == "" && tx.Metadata[schema.PayeeClassifier] != "" {
 			tx.Payee = c.lastPart(tx.Metadata[schema.PayeeClassifier])
 			delete(tx.Metadata, schema.PayeeClassifier)
+		}
+
+		if tx.Payee == "" && len(tx.Items) == 2 {
+			if tx.Items[0].Currency == tx.Items[1].Currency {
+				tx.Payee = "Transfer"
+			} else {
+				tx.Payee = "Exchange"
+			}
 		}
 
 		if tx.Metadata[schema.ExpensesClassifier] != "" {

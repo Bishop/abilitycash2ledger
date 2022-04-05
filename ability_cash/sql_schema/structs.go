@@ -3,7 +3,6 @@ package sql_schema
 import (
 	"database/sql"
 	"math"
-	"strings"
 	"time"
 
 	"github.com/Bishop/abilitycash2ledger/ability_cash/schema"
@@ -169,67 +168,40 @@ func (d *Database) readTxs(uid int, fetch FetchFunc) error {
 
 	tx := ledger.Transaction{
 		Date:     time.Unix(date, 0),
-		Cleared:  locked,
 		Note:     comment,
+		Cleared:  locked,
 		Metadata: make(map[string]string),
 		Items:    []ledger.TxItem{},
 	}
 
 	if iaccout.Valid {
-		account := d.accountIndex[int(iaccout.Int32)]
-
-		item := ledger.TxItem{
-			Account:  account.Name,
-			Currency: account.Currency,
-			Amount:   d.currenciesIndexS[account.Currency].ConvertAmount(iamount.Float64),
-		}
-
-		tx.Items = append(tx.Items, item)
+		tx.Items = append(tx.Items, d.makeTxItem(iaccout, iamount))
 	}
 
 	if eaccount.Valid {
-		account := d.accountIndex[int(eaccount.Int32)]
-
-		item := ledger.TxItem{
-			Account:  account.Name,
-			Currency: account.Currency,
-			Amount:   d.currenciesIndexS[account.Currency].ConvertAmount(eamount.Float64),
-		}
-
-		tx.Items = append(tx.Items, item)
-	}
-
-	if iaccout.Valid && eaccount.Valid {
-		if tx.Items[0].Currency == tx.Items[1].Currency {
-			tx.Payee = "Transfer"
-		} else {
-			tx.Payee = "Exchange"
-		}
+		tx.Items = append(tx.Items, d.makeTxItem(eaccount, eamount))
 	}
 
 	if categories, ok := d.txCategoriesIndex[uid]; ok {
 		for _, category := range categories {
 			name := d.categoriesIndex[category]
-
-			nameParts := strings.SplitN(name, "\\", 2)
-
-			classifier := ""
-			switch nameParts[0] {
-			case "Income", "Expenses":
-				classifier = schema.ExpensesClassifier
-			case "Payee":
-				classifier = schema.PayeeClassifier
-			case "Agents":
-				classifier = "Agent"
-			}
-
-			tx.Metadata[classifier] = name
+			tx.Metadata[schema.CategoryClassifier(name)] = name
 		}
 	}
 
 	d.Transactions = append(d.Transactions, tx)
 
 	return nil
+}
+
+func (d *Database) makeTxItem(accountId sql.NullInt32, amount sql.NullFloat64) ledger.TxItem {
+	account := d.accountIndex[int(accountId.Int32)]
+
+	return ledger.TxItem{
+		Account:  account.Name,
+		Currency: account.Currency,
+		Amount:   d.currenciesIndexS[account.Currency].ConvertAmount(amount.Float64),
+	}
 }
 
 func (c *Currency) ConvertAmount(amount float64) float64 {
