@@ -3,6 +3,7 @@ package scope
 import (
 	"errors"
 	"fmt"
+	"github.com/Bishop/abilitycash2ledger/ability_cash/sql_schema"
 	"os"
 	"path"
 	"text/template"
@@ -27,6 +28,8 @@ func (d *datafile) readDb() (schema.Database, error) {
 		return xml_schema.ReadDatabase(d.Path)
 	case "", ".csv":
 		return csv_schema.ReadDatabase(d.Path)
+	case ".cash":
+		return sql_schema.ReadDatabase(d.Path)
 	default:
 		return nil, errors.New("unknown format")
 	}
