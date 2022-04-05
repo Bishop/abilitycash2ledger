@@ -11,9 +11,7 @@ import (
 
 type Database struct {
 	Rates             []schema.Rate
-	Classifiers       schema.ClassifiersList
 	Accounts          []schema.Account
-	AccountsMap       schema.AccountsMap
 	Transactions      []ledger.Transaction
 	accountIndex      map[int]*schema.Account
 	currenciesIndexI  map[int]*Currency
@@ -33,12 +31,7 @@ func NewDatabase() *Database {
 	db := new(Database)
 
 	db.Rates = make([]schema.Rate, 0)
-	db.Classifiers = make(schema.ClassifiersList)
-	db.Classifiers[schema.ExpensesClassifier] = make([]string, 0)
-	db.Classifiers[schema.PayeeClassifier] = make([]string, 0)
-	db.Classifiers["Agent"] = make([]string, 0)
 	db.Accounts = make([]schema.Account, 0)
-	db.AccountsMap = make(schema.AccountsMap)
 	db.Transactions = make([]ledger.Transaction, 0)
 
 	db.accountIndex = make(map[int]*schema.Account)
@@ -56,10 +49,6 @@ func (d *Database) GetAccounts() *[]schema.Account {
 
 func (d *Database) GetTransactions() *[]ledger.Transaction {
 	return &d.Transactions
-}
-
-func (d *Database) GetClassifiers() *schema.ClassifiersList {
-	return &d.Classifiers
 }
 
 func (d *Database) GetRates() *[]schema.Rate {

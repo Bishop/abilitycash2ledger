@@ -19,7 +19,6 @@ import (
 
 type Database struct {
 	Rates        []schema.Rate
-	Classifiers  schema.ClassifiersList
 	Accounts     []schema.Account
 	AccountsMap  schema.AccountsMap
 	Transactions []ledger.Transaction
@@ -29,10 +28,6 @@ func NewDatabase() *Database {
 	db := new(Database)
 
 	db.Rates = make([]schema.Rate, 0)
-	db.Classifiers = make(schema.ClassifiersList)
-	db.Classifiers[schema.ExpensesClassifier] = make([]string, 0)
-	db.Classifiers[schema.PayeeClassifier] = make([]string, 0)
-	db.Classifiers["Agent"] = make([]string, 0)
 	db.Accounts = make([]schema.Account, 0)
 	db.AccountsMap = make(schema.AccountsMap)
 	db.Transactions = make([]ledger.Transaction, 0)
@@ -80,13 +75,6 @@ func (d *Database) AddRate(record []string) {
 	d.Rates = append(d.Rates, rate)
 }
 
-func (d *Database) AddCategory(record []string) {
-	category := record[0][1:]
-
-	classifier := schema.CategoryClassifier(category)
-	d.Classifiers[classifier] = append(d.Classifiers[classifier], category)
-}
-
 func (d *Database) AddAccountMap(record []string) {
 	dir := strings.Replace(record[0], "\\Root", "", 1)
 	dir = strings.Replace(dir, "\\", "", 1)
@@ -116,10 +104,6 @@ func (d *Database) GetAccounts() *[]schema.Account {
 
 func (d *Database) GetTransactions() *[]ledger.Transaction {
 	return &d.Transactions
-}
-
-func (d *Database) GetClassifiers() *schema.ClassifiersList {
-	return &d.Classifiers
 }
 
 func (d *Database) GetRates() *[]schema.Rate {

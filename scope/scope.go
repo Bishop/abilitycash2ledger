@@ -37,7 +37,6 @@ func (s *scope) Validate() ([]string, error) {
 
 	_ = s.iterateDatafiles(func(d *datafile) error {
 		_ = *d.db.GetAccounts()
-		_ = *d.db.GetClassifiers()
 
 		messages = append(messages, fmt.Sprintf("file %s is ok; found %d transactions\n", d.Path, len(*d.db.GetTransactions())))
 

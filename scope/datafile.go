@@ -51,7 +51,7 @@ func (d *datafile) export() (err error) {
 
 	err = d.exportEntity("txs", converter.Transactions())
 
-	if err = d.exportEntity("accounts", converter.AccountsList()); err != nil {
+	if err = d.exportEntity("accounts", converter.Accounts()); err != nil {
 		return err
 	}
 

@@ -241,20 +241,6 @@ func (d *Database) GetTransactions() *[]ledger.Transaction {
 	return &txs
 }
 
-func (d *Database) GetClassifiers() *schema.ClassifiersList {
-	classifiers := make(schema.ClassifiersList)
-
-	for _, classifier := range d.Classifiers {
-		classifiers[classifier.Name] = make([]string, 0)
-
-		for category := range classifier.Categories() {
-			classifiers[classifier.Name] = append(classifiers[classifier.Name], category)
-		}
-	}
-
-	return &classifiers
-}
-
 func (d *Database) account(a string) string {
 	account, ok := d.AccountsMap[a]
 	if ok {

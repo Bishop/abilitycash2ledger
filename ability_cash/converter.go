@@ -1,6 +1,7 @@
 package ability_cash
 
 import (
+	"sort"
 	"strings"
 	"time"
 
@@ -11,9 +12,12 @@ import (
 type LedgerConverter struct {
 	GenerateEquity bool
 	Db             schema.Database
+	accounts       map[string]string
 }
 
 func (c *LedgerConverter) Transactions() <-chan ledger.Transaction {
+	c.accounts = make(map[string]string)
+
 	txs := make(chan ledger.Transaction)
 
 	go func() {
@@ -96,27 +100,25 @@ func (c *LedgerConverter) lastPart(account string) string {
 }
 
 func (c *LedgerConverter) account(s string) string {
-	s = strings.Replace(s, "Assets\\", "", 1)
-	s = strings.Replace(s, "\\", ":", -1)
+	a, ok := c.accounts[s]
+
+	if !ok {
+		a = strings.Replace(s, "Assets\\", "", 1)
+		a = strings.Replace(a, "\\", ":", -1)
+		c.accounts[s] = a
+	}
 
 	return s
 }
 
-func (c *LedgerConverter) AccountsList() <-chan string {
-	list := make(chan string)
+func (c *LedgerConverter) Accounts() []string {
+	list := make([]string, 0, len(c.accounts))
 
-	go func() {
-		for _, account := range *c.Db.GetAccounts() {
-			list <- account.Name
-		}
-		if accounts, ok := (*c.Db.GetClassifiers())[schema.ExpensesClassifier]; ok {
-			for _, account := range accounts {
-				list <- account
-			}
-		}
+	for _, account := range c.accounts {
+		list = append(list, account)
+	}
 
-		close(list)
-	}()
+	sort.Strings(list)
 
 	return list
 }

@@ -8,12 +8,14 @@ import (
 	"github.com/Bishop/abilitycash2ledger/ability_cash/schema"
 )
 
-const AccountsSql = "SELECT Id, Name, StartingBalance, Currency FROM Accounts WHERE NOT Deleted"
-const CurrenciesSql = "SELECT Id, Code, Precision FROM Currencies WHERE NOT Deleted"
-const CategoriesSql = "SELECT Id, Name, Parent FROM Categories WHERE NOT Deleted ORDER BY Parent"
-const RatesSql = "SELECT RateDate, Currency1, Currency2, Value1, Value2 FROM CurrencyRates WHERE NOT Deleted ORDER BY RateDate"
-const TxCategoriesSql = "SELECT Category, \"Transaction\" FROM TransactionCategories WHERE NOT Deleted"
-const TxsSql = "SELECT Id, BudgetDate, Locked, IncomeAccount, IncomeAmount, ExpenseAccount, ExpenseAmount, Comment FROM Transactions WHERE NOT Deleted AND Executed ORDER BY BudgetDate"
+const (
+	AccountsSql     = "SELECT Id, Name, StartingBalance, Currency FROM Accounts WHERE NOT Deleted"
+	CurrenciesSql   = "SELECT Id, Code, Precision FROM Currencies WHERE NOT Deleted"
+	CategoriesSql   = "SELECT Id, Name, Parent FROM Categories WHERE NOT Deleted ORDER BY Parent"
+	RatesSql        = "SELECT RateDate, Currency1, Currency2, Value1, Value2 FROM CurrencyRates WHERE NOT Deleted ORDER BY RateDate"
+	TxCategoriesSql = "SELECT Category, \"Transaction\" FROM TransactionCategories WHERE NOT Deleted"
+	TxsSql          = "SELECT Id, BudgetDate, Locked, IncomeAccount, IncomeAmount, ExpenseAccount, ExpenseAmount, Comment FROM Transactions WHERE NOT Deleted AND Executed ORDER BY BudgetDate"
+)
 
 func ReadDatabase(fileName string) (schema.Database, error) {
 	db := NewDatabase()

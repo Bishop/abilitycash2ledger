@@ -7,13 +7,14 @@ import (
 	"github.com/Bishop/abilitycash2ledger/ledger"
 )
 
-const PayeeClassifier = "Provider"
-const ExpensesClassifier = "Category"
+const (
+	PayeeClassifier    = "Provider"
+	ExpensesClassifier = "Category"
+)
 
 type Database interface {
 	GetAccounts() *[]Account
 	GetTransactions() *[]ledger.Transaction
-	GetClassifiers() *ClassifiersList
 	GetRates() *[]Rate
 }
 
@@ -32,8 +33,6 @@ type Rate struct {
 }
 
 type AccountsMap map[string]string
-type ClassifiersMap map[string]AccountsMap
-type ClassifiersList map[string][]string
 
 func CategoryClassifier(category string) string {
 	parts := strings.SplitN(category, "\\", 2)
