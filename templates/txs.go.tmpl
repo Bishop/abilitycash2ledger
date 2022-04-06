@@ -5,6 +5,11 @@
     ; {{$tag}}:{{$value}}
     {{- end}}
 {{- end -}}
+{{- if .Tags -}}
+    {{range .Tags}}
+    ; {{.}}:
+    {{- end}}
+{{- end -}}
 {{- range .Items}}
     {{if or .Amount .BalanceAssertion -}}
     {{acc .Account}}  {{ if .Amount}}{{signed .Amount}} {{.Currency}}{{end}}{{ if .BalanceAssertion}} = {{signed .BalanceAssertion}} {{.Currency}}{{end}}{{if .Payee}} ; Payee: {{.Payee}}{{end}}

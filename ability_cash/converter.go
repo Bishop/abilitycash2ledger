@@ -1,6 +1,7 @@
 package ability_cash
 
 import (
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -12,7 +13,15 @@ import (
 type LedgerConverter struct {
 	GenerateEquity bool
 	Db             schema.Database
+	Categories     map[string]string
 	accounts       map[string]string
+}
+
+type Tags struct {
+	Payee     string
+	ItemPayee string
+	Account   string
+	Tags      map[string]string
 }
 
 func (c *LedgerConverter) Transactions() <-chan ledger.Transaction {
@@ -54,36 +63,44 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 	}
 
 	for _, tx := range *c.Db.GetTransactions() {
-		if tx.Payee == "" && tx.Metadata[schema.PayeeClassifier] != "" {
-			tx.Payee = c.lastPart(tx.Metadata[schema.PayeeClassifier])
-			delete(tx.Metadata, schema.PayeeClassifier)
+		tags := c.createTags(tx.Tags)
+		tx.Tags = nil
+		tx.Metadata = tags.Tags
+
+		if tx.Payee == "" {
+			tx.Payee = tags.Payee
 		}
 
 		if tx.Payee == "" && len(tx.Items) == 2 {
 			if tx.Items[0].Currency == tx.Items[1].Currency {
 				tx.Payee = "Transfer"
+
+				if math.Abs(tx.Items[0].Amount) == math.Abs(tx.Items[1].Amount) {
+					index := 0
+					if tx.Items[1].Amount < 0 {
+						index = 1
+					}
+					tx.Items[index].Amount = 0
+					tx.Items[index].Currency = ""
+				}
 			} else {
 				tx.Payee = "Exchange"
 			}
 		}
 
-		if tx.Metadata[schema.ExpensesClassifier] != "" {
-			account := tx.Metadata[schema.ExpensesClassifier]
-			delete(tx.Metadata, schema.ExpensesClassifier)
-
-			if tx.Payee == "" && strings.Count(account, "\\") == 3 {
-				tx.Payee = c.lastPart(account)
-				account = strings.Replace(account, "\\"+tx.Payee, "", 1)
-			}
-
-			tx.Items = append(tx.Items, ledger.TxItem{Account: account})
+		if tags.Account != "" {
+			tx.Items = append(tx.Items, ledger.TxItem{Account: tags.Account})
 
 			if tx.Items[0].Amount < 0 {
-				tx.Items[1].Amount = -tx.Items[0].Amount
-				tx.Items[0].Amount = 0
-				tx.Items[1].Currency = tx.Items[0].Currency
-				tx.Items[0].Currency = ""
+				tx.Items[1].Amount, tx.Items[0].Amount = -tx.Items[0].Amount, 0
+				tx.Items[1].Currency, tx.Items[0].Currency = tx.Items[0].Currency, ""
 			}
+		}
+
+		if tx.Payee == "" {
+			tx.Payee = tags.ItemPayee
+		} else {
+			tx.Items[1].Payee = tags.ItemPayee
 		}
 
 		tx.Items[0].Account = c.account(tx.Items[0].Account)
@@ -93,10 +110,16 @@ func (c *LedgerConverter) transactions(txs chan<- ledger.Transaction) {
 	}
 }
 
-func (c *LedgerConverter) lastPart(account string) string {
-	parts := strings.Split(account, "\\")
+func (c *LedgerConverter) Accounts() []string {
+	list := make([]string, 0, len(c.accounts))
 
-	return parts[len(parts)-1]
+	for _, account := range c.accounts {
+		list = append(list, account)
+	}
+
+	sort.Strings(list)
+
+	return list
 }
 
 func (c *LedgerConverter) account(s string) string {
@@ -111,14 +134,32 @@ func (c *LedgerConverter) account(s string) string {
 	return a
 }
 
-func (c *LedgerConverter) Accounts() []string {
-	list := make([]string, 0, len(c.accounts))
+func (c *LedgerConverter) createTags(tags []string) *Tags {
+	t := new(Tags)
+	t.Tags = make(map[string]string)
 
-	for _, account := range c.accounts {
-		list = append(list, account)
+	for _, tag := range tags {
+		parts := strings.SplitN(tag, "\\", 2)
+		switch c.Categories[parts[0]] {
+		case "payee":
+			t.Payee = c.lastPart(tag)
+		case "account":
+			t.Account = tag
+
+			if strings.Count(t.Account, "\\") == 3 {
+				t.ItemPayee = c.lastPart(t.Account)
+				t.Account = t.Account[0 : len(t.Account)-len(t.ItemPayee)-1]
+			}
+		default:
+			t.Tags[parts[0]] = c.lastPart(tag)
+		}
 	}
 
-	sort.Strings(list)
+	return t
+}
 
-	return list
+func (c *LedgerConverter) lastPart(account string) string {
+	parts := strings.Split(account, "\\")
+
+	return parts[len(parts)-1]
 }

@@ -8,11 +8,16 @@ import (
 )
 
 func NewScope() *scope {
-	return new(scope)
+	s := new(scope)
+
+	s.Categories = map[string]string{"Payee": "payee", "Expenses": "account", "Income": "account"}
+
+	return s
 }
 
 type scope struct {
-	Datafiles []*datafile `json:"datafiles"`
+	Datafiles  []*datafile       `json:"datafiles"`
+	Categories map[string]string `json:"categories"`
 }
 
 func (s *scope) AddFile(name string) error {
@@ -48,7 +53,7 @@ func (s *scope) Validate() ([]string, error) {
 
 func (s *scope) Export() error {
 	return s.iterateDatafiles(func(d *datafile) error {
-		return d.export()
+		return d.export(s.Categories)
 	})
 }
 

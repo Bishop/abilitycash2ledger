@@ -156,11 +156,11 @@ func (d *Database) readTxs(uid int, fetch FetchFunc) error {
 	}
 
 	tx := ledger.Transaction{
-		Date:     time.Unix(date, 0),
-		Note:     comment,
-		Cleared:  locked,
-		Metadata: make(map[string]string),
-		Items:    []ledger.TxItem{},
+		Date:    time.Unix(date, 0),
+		Note:    comment,
+		Cleared: locked,
+		Tags:    make([]string, 0),
+		Items:   []ledger.TxItem{},
 	}
 
 	if iaccout.Valid {
@@ -173,8 +173,7 @@ func (d *Database) readTxs(uid int, fetch FetchFunc) error {
 
 	if categories, ok := d.txCategoriesIndex[uid]; ok {
 		for _, category := range categories {
-			name := d.categoriesIndex[category]
-			tx.Metadata[schema.CategoryClassifier(name)] = name
+			tx.Tags = append(tx.Tags, d.categoriesIndex[category])
 		}
 	}
 

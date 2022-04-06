@@ -41,14 +41,13 @@ func (d *Database) AddTx(record []string) {
 		Note:     record[9],
 		Executed: record[0] == "+",
 		Cleared:  record[1] == "+",
-		Metadata: make(map[string]string),
+		Tags:     make([]string, 0),
 		Items:    []ledger.TxItem{},
 	}
 
-	for _, category := range []string{record[10], record[11], record[12]} {
+	for _, category := range record[10:] {
 		if category != "" {
-			category = category[1:]
-			tx.Metadata[schema.CategoryClassifier(category)] = category
+			tx.Tags = append(tx.Tags, category[1:])
 		}
 	}
 

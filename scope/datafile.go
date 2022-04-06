@@ -39,7 +39,7 @@ func (d *datafile) format() string {
 	return path.Ext(d.Path)
 }
 
-func (d *datafile) export() (err error) {
+func (d *datafile) export(categories map[string]string) (err error) {
 	if err = d.exportEntity("rates", d.db.GetRates()); err != nil {
 		return
 	}
@@ -47,6 +47,7 @@ func (d *datafile) export() (err error) {
 	converter := &ability_cash.LedgerConverter{
 		GenerateEquity: d.Equity,
 		Db:             d.db,
+		Categories:     categories,
 	}
 
 	err = d.exportEntity("txs", converter.Transactions())

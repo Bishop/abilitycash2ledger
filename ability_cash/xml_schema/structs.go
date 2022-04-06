@@ -73,6 +73,7 @@ type Transfer struct {
 	txItem
 	txIncome
 	txExpense
+	Categories txCategories `xml:"category"`
 }
 
 type Income struct {
@@ -183,9 +184,12 @@ func (d *Database) GetTransactions() *[]ledger.Transaction {
 
 		switch {
 		case source.Transfer != nil:
+			tx.Tags = source.Transfer.Categories.List()
 			tx.Items = []ledger.TxItem{
 				{
-					Account: d.account(source.Transfer.ExpenseAccount.Name),
+					Account:  d.account(source.Transfer.ExpenseAccount.Name),
+					Currency: source.Transfer.ExpenseAccount.Currency,
+					Amount:   source.Transfer.ExpenseAmount,
 				},
 				{
 					Account:  d.account(source.Transfer.IncomeAccount.Name),
@@ -193,33 +197,22 @@ func (d *Database) GetTransactions() *[]ledger.Transaction {
 					Amount:   source.Transfer.IncomeAmount,
 				},
 			}
-
-			if source.Transfer.IncomeAccount.Currency != source.Transfer.ExpenseAccount.Currency {
-				tx.Items[0].Currency = source.Transfer.ExpenseAccount.Currency
-				tx.Items[0].Amount = source.Transfer.ExpenseAmount
-			}
 		case source.Expense != nil:
-			tx.Metadata = source.Expense.Categories.Map()
+			tx.Tags = source.Expense.Categories.List()
 			tx.Items = []ledger.TxItem{
 				{
-					Account: d.account(source.Expense.ExpenseAccount.Name),
-				},
-				{
-					Account:  d.accountFromCategories(tx.Metadata),
+					Account:  d.account(source.Expense.ExpenseAccount.Name),
 					Currency: source.Expense.ExpenseAccount.Currency,
-					Amount:   -source.Expense.ExpenseAmount,
+					Amount:   source.Expense.ExpenseAmount,
 				},
 			}
 		case source.Income != nil:
-			tx.Metadata = source.Income.Categories.Map()
+			tx.Tags = source.Income.Categories.List()
 			tx.Items = []ledger.TxItem{
 				{
 					Account:  d.account(source.Income.IncomeAccount.Name),
 					Currency: source.Income.IncomeAccount.Currency,
 					Amount:   source.Income.IncomeAmount,
-				},
-				{
-					Account: d.accountFromCategories(tx.Metadata),
 				},
 			}
 		case source.Balance != nil:
@@ -248,10 +241,6 @@ func (d *Database) account(a string) string {
 	} else {
 		return a
 	}
-}
-
-func (d *Database) accountFromCategories(classifier map[string]string) string {
-	return classifier["Статья"]
 }
 
 func (d *Database) cacheAccountsMap() {
