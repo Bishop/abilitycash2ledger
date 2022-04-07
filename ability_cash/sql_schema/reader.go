@@ -14,7 +14,13 @@ const (
 	CategoriesSql   = "SELECT Id, Name, Parent FROM Categories WHERE NOT Deleted ORDER BY Parent"
 	RatesSql        = "SELECT RateDate, Currency1, Currency2, Value1, Value2 FROM CurrencyRates WHERE NOT Deleted ORDER BY RateDate"
 	TxCategoriesSql = "SELECT Category, \"Transaction\" FROM TransactionCategories WHERE NOT Deleted"
-	TxsSql          = "SELECT Id, BudgetDate, Locked, IncomeAccount, IncomeAmount, ExpenseAccount, ExpenseAmount, Comment FROM Transactions WHERE NOT Deleted AND Executed ORDER BY BudgetDate"
+	TxsSql          = `
+    SELECT tx.Id, HolderDateTime, Locked, IncomeAccount, IncomeAmount, ExpenseAccount, ExpenseAmount, Comment
+      FROM Transactions tx
+INNER JOIN TransactionGroups txg ON tx."Group" = txg.Id
+     WHERE NOT tx.Deleted AND Executed
+  ORDER BY HolderDateTime, txg.Position
+`
 )
 
 func ReadDatabase(fileName string) (schema.Database, error) {
