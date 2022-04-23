@@ -9,9 +9,18 @@ import (
 )
 
 const (
-	AccountsSql     = "SELECT Id, Name, StartingBalance, Currency FROM Accounts WHERE NOT Deleted"
-	CurrenciesSql   = "SELECT Id, Code, Precision FROM Currencies WHERE NOT Deleted"
-	CategoriesSql   = "SELECT Id, Name, Parent FROM Categories WHERE NOT Deleted ORDER BY Parent"
+	AccountsSql   = "SELECT Id, Name, StartingBalance, Currency FROM Accounts WHERE NOT Deleted"
+	CurrenciesSql = "SELECT Id, Code, Precision FROM Currencies WHERE NOT Deleted"
+	CategoriesSql = `
+WITH RECURSIVE parents AS (
+    SELECT Id, Name, Parent FROM Categories WHERE Parent IS NULL AND NOT Deleted
+    UNION ALL
+    SELECT Categories.Id, Categories.Name, Categories.Parent FROM Categories
+      JOIN parents ON parents.Id == Categories.Parent
+     WHERE NOT Categories.Deleted
+)
+SELECT * FROM parents
+`
 	RatesSql        = "SELECT RateDate, Currency1, Currency2, Value1, Value2 FROM CurrencyRates WHERE NOT Deleted ORDER BY RateDate"
 	TxCategoriesSql = "SELECT Category, \"Transaction\" FROM TransactionCategories WHERE NOT Deleted"
 	TxsSql          = `
